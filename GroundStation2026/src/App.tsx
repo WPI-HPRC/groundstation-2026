@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
+
+import Graph from "./graphics/Graph";
+
 import "./App.css";
 
 function App() {
@@ -12,9 +15,40 @@ function App() {
     setGreetMsg(await invoke("greet", { name }));
   }
 
+  const MAX_DATA_SIZE = 100;
+
+  const [data, setData] = useState([]);
+  let counter = 0;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Logic to fetch or generate new data
+      const newDataPoint = {
+        x: counter,
+        y: Math.random() * 100,
+      };
+      counter++;
+      
+      // Update the state with the new rolling data
+      setData(currentData => {
+        // Create a new array to avoid direct state mutation
+        const nextData = [...currentData, newDataPoint];
+        // If the array exceeds the max size, remove the oldest element
+        if (nextData.length > MAX_DATA_SIZE) {
+          nextData.shift();
+        }
+        return nextData;
+      });
+    }, 10); // Update every second
+
+    return () => clearInterval(interval); // Cleanup function
+  }, []);
+
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+      <h1>HPRC Ground Station</h1>
+
+      <Graph data={data} xlabel="x" ylabel="y" title="y vs. x" />
 
       <div className="row">
         <a href="https://vitejs.dev" target="_blank">
