@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package HPRC;
+
+message CommandResponse {
+  message SetFlightMode {
+    bool success = 1;
+  }
+
+  message SetVideoActive {
+    bool success = 1;
+  }
+
+  message ClearSD {
+    bool success = 1;
+  }
+
+  message ReadSDDirectory {
+    repeated string filename = 1;
+  }
+
+  message ReadSDFile {
+    string fileContents = 1;
+  }
+
+  oneof Message {
+    SetFlightMode setFlightMode = 1;
+    SetVideoActive setVideoActive = 2;
+    ClearSD clearSD = 3;
+    ReadSDDirectory readSDDirectory = 4;
+    ReadSDFile readSDFile = 5;
+  }
+}

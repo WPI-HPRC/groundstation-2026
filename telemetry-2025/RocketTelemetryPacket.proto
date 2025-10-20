@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package HPRC;
+
+message RocketTelemetryPacket {
+  // State Integer
+  // 0 - PreLaunch
+  // 1 - Launch
+  // 2 - Coast
+  // 3 - DrogueDescent
+  // 4 - MainDescent
+  // 5 - Recovery
+  // 6 - Abort
+  int32 state = 1; // uint8_t
+
+  // Raw Sensor Readings
+  float accelX = 2;
+  float accelY = 3;
+  float accelZ = 4;
+  float gyroX = 5;
+  float gyroY = 6;
+  float gyroZ = 7;
+  float rawMagX = 8;
+  float rawMagY = 9;
+  float rawMagZ = 10;
+  float pressure = 11;
+  float temperature = 12;
+
+  uint32 servoPosition = 13;
+
+  // Calculated Values
+  float altitude = 14;
+  float launchAltitude = 40;
+  float magX = 15;
+  float magY = 16;
+  float magZ = 17;
+
+  // EKF Results
+  float w = 18; // Quaternion State
+  float i = 19;
+  float j = 20;
+  float k = 21;
+  float posX = 22; // Position State ECEF
+  float posY = 23;
+  float posZ = 24;
+  float velX = 25; // Velocity State ECEF
+  float velY = 26;
+  float velZ = 27;
+
+  // GPS Inputs
+  float gpsLat = 28;
+  float gpsLong = 29;
+  float gpsAltMSL = 30;
+  float gpsAltAGL = 31;
+  int32 gpsVelocityN = 32;
+  int32 gpsVelocityE = 33;
+  int32 gpsVelocityD = 34;
+  uint32 epochTime = 35;
+  uint32 satellites = 36; // uint8_t
+  bool gpsLock = 37;
+
+  int32 sdFileNo = 47;
+
+  uint32 loopCount = 38;
+  uint32 timestamp = 39;
+
+  float covQW = 41;
+  float covQX = 42;
+  float covQY = 43;
+  float covQZ = 44;
+  bool drogueDeploy = 45;
+  bool mainDeploy = 46;
+}

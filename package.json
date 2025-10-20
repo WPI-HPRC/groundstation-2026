@@ -4,17 +4,22 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "pnpm gen:proto && vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "pnpm gen:proto && tauri",
+
+    "gen:proto": "protoc -I ./telemetry-2025 ./telemetry-2025/*.proto --ts_proto_out=./src/gen --ts_proto_opt=env=browser,esModuleInterop=true,outputJsonMethods=true,outputEncodeMethods=false,outputClientImpl=false,longs=number,oneof=unions,useOptionals=messages,snakeToCamel=true",
+    "gen:proto:watch": "chokidar 'telemetry-2025/**/*.proto' -c 'pnpm gen:proto'"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "chokidar-cli": "^3.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^3.3.0"
+    "recharts": "^3.3.0",
+    "ts-proto": "^2.7.7"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

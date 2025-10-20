@@ -17,9 +17,9 @@ function Graph({data, xlabel, ylabel, title}: GraphProps): JSX.Element {
 
     return (
         <LineChart width={500} height={300} data={data}>
-          <XAxis dataKey="x" type="number" label={xlabel} scale="time" domain={['auto', 'auto']} />
-          <YAxis label={ylabel} />
-          <Line type="monotone" dataKey="y" stroke="#8884d8" isAnimationActive={false} />
+          <XAxis dataKey="x" type="number" label={xlabel} domain={['auto', 'auto']}/>
+          <YAxis label={ylabel} domain={['auto', 'auto']}/>
+          <Line type="monotone" dataKey="y" stroke="#8884d8" isAnimationActive={false} dot={false} />
           <text 
             x={300} 
             y={20} 

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+import "Telemetry.proto";
+import "Command.proto";
+import "CommandResponse.proto";
+
+package HPRC;
+
+message BeginPacketChunks {
+  int32 numPacketsToBeSent = 1;
+  int32 numBytesToBeSent = 2;
+}
+
+message EndPacketChunks {
+  int32 numPacketsSent = 1;
+  int32 numBytesSent = 2;
+}
+
+message Packet {
+  oneof Message {
+    Telemetry telemetry = 1;
+    Command command = 2;
+    CommandResponse commandResponse = 3;
+    BeginPacketChunks beginPacketChunks = 4;
+    EndPacketChunks endPacketChunks = 5;
+  }
+}

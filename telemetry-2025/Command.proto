@@ -1,0 +1,41 @@
+syntax = "proto3";
+package HPRC;
+
+message Command {
+  message ActuateAirbrakes {
+    int32 servoValue = 1;
+  }
+
+  message SetFlightMode {
+    bool flightModeOn = 1;
+  }
+
+  message SetVideoActive {
+    bool videoActive = 1;
+  }
+
+  message PowerCycle {}
+
+  message ClearSD {}
+
+  message ReadSDDirectory {}
+
+  message SetAcksEnabled {
+    bool acksEnabled = 1;
+  }
+
+  message ReadSDFile {
+    string filename = 1;
+  }
+
+  oneof Message {
+    ActuateAirbrakes actuateAirbrakes = 1;
+    SetFlightMode setFlightMode = 2;
+    SetVideoActive setVideoActive = 3;
+    ClearSD clearSD = 4;
+    ReadSDDirectory readSDDirectory = 5;
+    ReadSDFile readSDFile =  6;
+    PowerCycle powerCycle = 7;
+    SetAcksEnabled setAcksEnabled = 8;
+  }
+}

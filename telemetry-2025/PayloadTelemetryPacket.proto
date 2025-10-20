@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package HPRC;
+
+message PayloadTelemetryPacket {
+  // State Integer
+  // 0 - PreLaunch
+  // 1 - Test
+  uint32 state = 1;
+
+  // Raw Sensor Readings
+  float accelX = 2;
+  float accelY = 3;
+  float accelZ = 4;
+  float gyroX = 5;
+  float gyroY = 6;
+  float gyroZ = 7;
+  float rawMagX = 8;
+  float rawMagY = 9;
+  float rawMagZ = 10;
+  float pressure = 11;
+  float temperature = 12;
+
+  // Calculated Values
+  float altitude = 13;
+  float initialAltitude = 55;
+  float magX = 14;
+  float magY = 15;
+  float magZ = 16;
+
+  // EKF Results
+  float w = 17;   // Quaternion State
+  float i = 18;
+  float j = 19;
+  float k = 20;
+  float posX = 21; // Position State ECEF
+  float posY = 22;
+  float posZ = 23;
+  float velX = 24; // Velocity State ECEF
+  float velY = 25;
+  float velZ = 26;
+
+  // GPS Inputs
+  float gpsLat = 27;
+  float gpsLong = 28;
+  float gpsAltMSL = 29;
+  float gpsAltAGL = 30;
+  uint32 epochTime = 34;
+  uint32 satellites = 35;
+  bool gpsLock = 36;
+
+  uint32 loopCount = 37;
+  uint32 timestamp = 38;
+
+  // Payload Specific
+
+  // CV
+  uint32 cx = 39; // Camera Centroids
+  uint32 cy = 40;
+
+  // Target Point GPS Estimations
+  float targetGpsLat = 41;
+  float targetGpsLong = 42;
+
+  // Servo Controls Values
+  uint32 desiredServoPos1 = 43;
+  uint32 actualServoPos1 = 44;
+  uint32 desiredServoPos2 = 45;
+  uint32 actualServoPos2 = 46;
+  uint32 desiredServoPos3 = 47;
+  uint32 actualServoPos3 = 48;
+  uint32 desiredServoPos4 = 49;
+  uint32 actualServoPos4 = 50;
+
+  // Calculated Trajectory Constants
+  float trajA = 51;
+  float trajB = 52;
+  float trajC = 53;
+  float trajD = 54;
+}
