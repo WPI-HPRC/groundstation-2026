@@ -1,4 +1,13 @@
-# Tauri + SvelteKit + TypeScript
+# WPI-HPRC groundstation-2026
+
+
+
+
+
+
+
+
+Tauri + SvelteKit + TypeScript
 
 This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
 
