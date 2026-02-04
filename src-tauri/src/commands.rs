@@ -6,6 +6,26 @@ use crate::middleware::video_stream::{VideoFrame, VideoFrameForFrontend};
 use tauri::State;
 use std::path::PathBuf;
 use std::collections::HashMap;
+use crate::Channels;
+
+// set data playback mode
+#[tauri::command]
+pub async fn set_playback_state(
+    playback_channel: State<'_, Channels::PlaybackControlChannel>,
+    control: Channels::PlaybackState,  
+) -> Result<(), String> {
+    playback_channel.playback_tx.send(control)
+    .map_err(|_| "Data Playback Backend not running".to_string())
+}
+
+// get data playback mode
+#[tauri::command]
+pub async fn get_playback_state(
+    playback_channel: State<'_, Channels::PlaybackControlChannel>,
+) -> Result<Channels::PlaybackState, String> {
+    Ok(playback_channel.playback_rx.borrow().clone())
+}
+
 
 /// Set telemetry data for a specific key
 #[tauri::command]
