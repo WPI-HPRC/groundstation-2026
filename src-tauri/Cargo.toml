@@ -27,3 +27,10 @@ chrono = "0.4.43"
 csv = "1.4.0"
 tokio = "1.49.0"
 
+
+
+[dependencies.uuid]
+version = "1.20.0"
+features = [
+    "v4"
+]

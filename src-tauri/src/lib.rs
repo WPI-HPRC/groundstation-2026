@@ -29,10 +29,10 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     let main_window = app.get_webview_window("main").unwrap();
 
     // init middleware
-    let middleware = Middleware::new();
+    // let middleware = Middleware::new();
     
     // give it to tauri data store so things can access it
-    app_handle.manage(middleware.clone());
+    // app_handle.manage(middleware.clone());
 
     // create an app shutdown signal
     let(shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(());
