@@ -1,12 +1,13 @@
 // Specifically for encoding/writing video into MJPEG files
 
 use std::collections::HashMap;
-use std::sync::{Mutex};
+use std::sync::{Arc, Mutex};
 use std::io::Write;
 use std::process::{Command, Stdio};
 use tauri::async_runtime;
 use uuid::Uuid;
 use tokio::sync::mpsc;
+
 
 
 use crate::middleware::video_streams::VideoFrame;
@@ -25,7 +26,7 @@ enum VideoCommand {
 }
 
 pub struct EncoderManager {
-    encoders: Mutex<HashMap<EncoderId, VideoEncoder>>,
+    encoders: Mutex<HashMap<EncoderId, Arc<VideoEncoder>>>,
 }
 
 impl EncoderManager {
@@ -37,13 +38,13 @@ impl EncoderManager {
 
     pub fn create_encoder(&self) -> EncoderId {
         let id = uuid::Uuid::new_v4();
-        let encoder = VideoEncoder::new();
+        let encoder = Arc::new(VideoEncoder::new());
 
         self.encoders.lock().unwrap().insert(id, encoder);
         id
     }
 
-    pub async fn start(
+    pub fn start(
         &self,
         id: EncoderId,
         path: String,
@@ -51,32 +52,38 @@ impl EncoderManager {
         height: u32,
         fps: i32,
     ) -> Result<(), String> {
-        let enc = self.encoders.lock().unwrap().get(&id).cloned();
-        enc.ok_or("Encoder not found")?
-            .start(path, width, height, fps)
-            .await
+        let enc = {
+            let encoders = self.encoders.lock().unwrap();
+            encoders.get(&id).cloned()
+        }.ok_or("Encoder not found")?;
+        enc.start(path, width, height, fps)
     }
 
-    pub async fn send_frame(
+    pub fn send_frame(
         &self,
         id: EncoderId,
         frame: VideoFrame,
     ) -> Result<(), String> {
-        let enc = self.encoders.lock().unwrap().get(&id).cloned();
-        enc.ok_or("Encoder not found")?
-            .send_frame(frame)
-            .await
+        let enc = {
+            let encoders = self.encoders.lock().unwrap();
+            encoders.get(&id).cloned()
+        }.ok_or("Encoder not found")?;
+        enc.send_frame(frame)
     }
 
-    pub async fn stop(&self, id: EncoderId) -> Result<(), String> {
-        let enc = self.encoders.lock().unwrap().get(&id).cloned();
-        enc.ok_or("Encoder not found")?
-            .stop()
-            .await
+    pub fn stop(&self, id: EncoderId) -> Result<(), String> {
+        let enc = {
+            let encoders = self.encoders.lock().unwrap();
+            encoders.get(&id).cloned()
+        }.ok_or("Encoder not found")?;
+        enc.stop()
     }
 
-    pub fn remove_encoder(&self, id: EncoderId) {
-        self.encoders.lock().unwrap().remove(&id);
+    pub fn remove_encoder(&self, id: EncoderId) -> Result<(), String> {
+        if let Some(enc) = self.encoders.lock().unwrap().remove(&id) {
+            enc.stop()?;
+        }
+        Ok(())
     }
 }
 
@@ -92,7 +99,7 @@ impl VideoEncoder {
         Self { tx }
     }
 
-    pub async fn start(
+    pub fn start(
         &self,
         path: impl Into<String>,
         width: u32,
@@ -100,27 +107,24 @@ impl VideoEncoder {
         fps: i32,
     ) -> Result<(), String> {
         self.tx
-            .send(VideoCommand::Start { 
+            .try_send(VideoCommand::Start { 
                 path: path.into(), 
                 width, 
                 height, 
                 fps 
             })
-            .await
             .map_err(|e| e.to_string())
     }
 
-    pub async fn send_frame(&self, frame: VideoFrame) -> Result<(), String> {
+    pub fn send_frame(&self, frame: VideoFrame) -> Result<(), String> {
         self.tx
-            .send(VideoCommand::Frame(frame))
-            .await
+            .try_send(VideoCommand::Frame(frame))
             .map_err(|e| e.to_string())
     }
     
-    pub async fn stop(&self) -> Result<(), String> {
+    pub fn stop(&self) -> Result<(), String> {
         self.tx
-            .send(VideoCommand::Stop)
-            .await
+            .try_send(VideoCommand::Stop)
             .map_err(|e| e.to_string())
     }
 }

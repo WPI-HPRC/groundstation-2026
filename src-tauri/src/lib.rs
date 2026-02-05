@@ -1,6 +1,12 @@
 // Main Tauri Application
 
 use tauri::{Manager, RunEvent, WebviewWindowBuilder, WindowEvent};
+use tokio::sync::{mpsc, watch};
+use std::fs;
+
+use std::path::{Path, PathBuf as PathBuf};
+use tauri::path::PathResolver as PathResolver;
+use chrono::Local;
 
 // import our middleware
 mod middleware;
@@ -11,17 +17,27 @@ mod channels;
 use crate::channels::{self as Channels, PlaybackState}; 
 
 mod backend;
-use crate::backend::{self as DataPlayback, 
+use crate::backend::{self as 
     data_playback, 
     direction_finding_interface,
     telemetry_radio_interface,
     tracker_interface,
     video_capture_interface,
 };
-    
-// commands for tauri to call from frontend
-mod commands; 
 
+// commands for tauri to call from frontend
+// mod commands;
+
+fn create_data_dir(app: &tauri::App) -> PathBuf {
+    let docs_path = app.path().document_dir().unwrap_or(".".into());
+    let base_path = docs_path
+    .join("Ground-Station".to_string())
+    .join(Local::now().format("%Y-%m-%d_%H-%M-%S").to_string());
+    
+    let _ = fs::create_dir_all(&base_path).map_err(|e| format!("Failed to create directory: {e}"));
+
+    base_path
+}
 
 fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     
@@ -29,10 +45,11 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     let main_window = app.get_webview_window("main").unwrap();
 
     // init middleware
-    // let middleware = Middleware::new();
+    let middleware = Middleware::new(create_data_dir(app));
     
     // give it to tauri data store so things can access it
-    // app_handle.manage(middleware.clone());
+    app_handle.manage(middleware.clone());
+
 
     // create an app shutdown signal
     let(shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(());
@@ -41,17 +58,16 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     let(playback_tx, playback_rx) = tokio::sync::watch::channel::<PlaybackState>(PlaybackState::NoData);
 
     // create a channel to communicate hardware ports
-    let(telemetry_radio_port_tx, telemetry_radio_port_rx) = tokio::sync::watch::channel(());
-    let(live_video_port_tx, live_video_port_rx) = tokio::sync::watch::channel(());
-    let(tracking_video_port_tx, tracking_video_port_rx) = tokio::sync::watch::channel(());
-    let(tracker_port_tx, tracker_port_rx) = tokio::sync::watch::channel(());
-    let(direction_finding_port_tx, direction_finding_port_rx) = tokio::sync::watch::channel(());
+    let(telemetry_radio_port_tx, telemetry_radio_port_rx) = tokio::sync::mpsc::channel::<String>(8);
+    let(live_video_port_tx, live_video_port_rx) = mpsc::channel::<String>(8);
+    let(tracking_video_port_tx, tracking_video_port_rx) = tokio::sync::mpsc::channel::<String>(8);
+    let(tracker_port_tx, tracker_port_rx) = tokio::sync::mpsc::channel::<String>(8);
+    let(direction_finding_port_tx, direction_finding_port_rx) = tokio::sync::mpsc::channel::<String>(8);
 
     // give all our comms channels to tauri so we can access them in the frontend commands
     app_handle.manage(Channels::ShutdownState { shutdown_tx });
     app_handle.manage(Channels::PlaybackControlChannel { playback_tx, playback_rx });
     app_handle.manage(Channels::HardwarePorts { telemetry_radio_port_tx, live_video_port_tx, tracking_video_port_tx, tracker_port_tx, direction_finding_port_tx });
-
 
 
     // create our backend modules
@@ -112,25 +128,25 @@ pub fn run() {
         .setup(|app| Ok(setup_backend(app)?))
 
         .invoke_handler(tauri::generate_handler![
-            commands::set_telemetry,
-            commands::get_telemetry,
-            commands::get_telemetry_keys,
-            commands::get_latest_telemetry,
-            commands::get_field_keys,
-            commands::get_all_field_keys,
-            commands::start_telemetry_recording,
-            commands::stop_telemetry_recording,
-            commands::start_video_recording,
-            commands::stop_video_recording,
-            commands::stop_all_video_recordings,
-            commands::get_recording_status,
-            commands::get_video_keys,
-            commands::get_latest_video_frame,
-            commands::clear_telemetry_key,
-            commands::clear_all_telemetry,
-            commands::add_video_frame,
-            commands::set_playback_state,
-            commands::get_playback_state,
+            // commands::set_telemetry,
+            // commands::get_telemetry,
+            // commands::get_telemetry_keys,
+            // commands::get_latest_telemetry,
+            // commands::get_field_keys,
+            // commands::get_all_field_keys,
+            // commands::start_telemetry_recording,
+            // commands::stop_telemetry_recording,
+            // commands::start_video_recording,
+            // commands::stop_video_recording,
+            // commands::stop_all_video_recordings,
+            // commands::get_recording_status,
+            // commands::get_video_keys,
+            // commands::get_latest_video_frame,
+            // commands::clear_telemetry_key,
+            // commands::clear_all_telemetry,
+            // commands::add_video_frame,
+            // commands::set_playback_state,
+            // commands::get_playback_state,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -151,8 +167,8 @@ pub fn run() {
                 // we don't care about the result, so just map it to _ (drop it)
                 let _ = shutdown_tx.send(());
 
-                // call explicit cleanup on middleware
-                // middleware.cleanup();
+                // call explicit cleanup on middleware to close file handles
+                app_handle.state::<Middleware>().shutdown();
                 
                 api.prevent_close();
 

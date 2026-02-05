@@ -19,9 +19,9 @@ pub enum PlaybackState {
 }
 
 pub struct HardwarePorts {
-    pub telemetry_radio_port_tx: tokio::sync::watch::Sender<()>,
-    pub live_video_port_tx: tokio::sync::watch::Sender<()>,
-    pub tracking_video_port_tx: tokio::sync::watch::Sender<()>,
-    pub tracker_port_tx: tokio::sync::watch::Sender<()>,
-    pub direction_finding_port_tx: tokio::sync::watch::Sender<()>,
+    pub telemetry_radio_port_tx: tokio::sync::mpsc::Sender<String>,
+    pub live_video_port_tx: tokio::sync::mpsc::Sender<String>,
+    pub tracking_video_port_tx: tokio::sync::mpsc::Sender<String>,
+    pub tracker_port_tx: tokio::sync::mpsc::Sender<String>,
+    pub direction_finding_port_tx: tokio::sync::mpsc::Sender<String>,
 }
