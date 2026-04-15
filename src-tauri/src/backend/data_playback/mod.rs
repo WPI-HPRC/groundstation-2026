@@ -1,1 +1,1 @@
-// Replays stored data from a folder containing CSV's and video files
+// Replays stored data from a folder containing CSVs and video files

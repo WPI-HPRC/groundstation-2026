@@ -23,5 +23,4 @@ pub struct HardwarePorts {
     pub live_video_port_tx: tokio::sync::mpsc::Sender<String>,
     pub tracking_video_port_tx: tokio::sync::mpsc::Sender<String>,
     pub tracker_port_tx: tokio::sync::mpsc::Sender<String>,
-    pub direction_finding_port_tx: tokio::sync::mpsc::Sender<String>,
 }

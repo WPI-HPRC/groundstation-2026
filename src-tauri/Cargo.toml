@@ -1,8 +1,8 @@
 [package]
 name = "groundstation-2026"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "WPI-HPRC 2026 Ground Station"
+authors = ["Nic DeBruin"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -26,7 +26,7 @@ base64 = "0.22.1"
 chrono = "0.4.43"
 csv = "1.4.0"
 tokio = "1.49.0"
-
+dashmap = "6.1.0"
 
 
 [dependencies.uuid]
