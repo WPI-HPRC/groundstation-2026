@@ -10,23 +10,23 @@ use crate::Channels;
    PLAYBACK CONTROL
    ========================================================= */
 
-#[tauri::command]
-pub async fn set_playback_state(
-    playback_channel: State<'_, Channels::PlaybackControlChannel>,
-    control: Channels::PlaybackState,
-) -> Result<(), String> {
-    playback_channel
-        .playback_tx
-        .send(control)
-        .map_err(|_| "Data Playback Backend not running".to_string())
-}
+// #[tauri::command]
+// pub async fn set_playback_state(
+//     playback_channel: State<'_, Channels::PlaybackControlChannel>,
+//     control: Channels::PlaybackState,
+// ) -> Result<(), String> {
+//     playback_channel
+//         .playback_tx
+//         .send(control)
+//         .map_err(|_| "Data Playback Backend not running".to_string())
+// }
 
-#[tauri::command]
-pub async fn get_playback_state(
-    playback_channel: State<'_, Channels::PlaybackControlChannel>,
-) -> Result<Channels::PlaybackState, String> {
-    Ok(playback_channel.playback_rx.borrow().clone())
-}
+// #[tauri::command]
+// pub async fn get_playback_state(
+//     playback_channel: State<'_, Channels::PlaybackControlChannel>,
+// ) -> Result<Channels::PlaybackState, String> {
+//     Ok(playback_channel.playback_rx.borrow().clone())
+// }
 
 /* =========================================================
    TELEMETRY (READ ONLY + DTO)

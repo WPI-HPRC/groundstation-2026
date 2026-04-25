@@ -125,8 +125,8 @@ pub fn run() {
 
         .invoke_handler(tauri::generate_handler![
             // Playback control
-            commands::set_playback_state,
-            commands::get_playback_state,
+            // commands::set_playback_state,
+            // commands::get_playback_state,
 
             // Telemetry (read-only)
             commands::get_telemetry,
