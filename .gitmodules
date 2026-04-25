@@ -1,0 +1,3 @@
+[submodule "src-tauri/telemetry-2026"]
+	path = src-tauri/telemetry-2026
+	url = https://github.com/WPI-HPRC/telemetry-2026.git

@@ -139,7 +139,7 @@ fn spawn_encoder_task(mut rx: mpsc::Receiver<VideoCommand>) {
         let mut stdin: Option<std::process::ChildStdin> = None;
         let mut width = 0;
         let mut height = 0;
-        let mut fps = 0;
+        let mut fps;
 
         while let Some(cmd) = rx.blocking_recv() {
             match cmd {

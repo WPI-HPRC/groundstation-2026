@@ -22,14 +22,22 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = "1.52.1"
 chrono = "0.4.44"
 dashmap = "6.1.0"
 base64 = "0.22.1"
 csv = "1.4.0"
+flatbuffers = "25.12.19"
+serialport = "4.9.0"
+tracing = "0.1.44"
 
 [dependencies.uuid]
 version = "1.20.0"
 features = [
     "v4"
+]
+
+[dependencies.tokio]
+version = "1.52.1"
+features = [
+    "full"
 ]

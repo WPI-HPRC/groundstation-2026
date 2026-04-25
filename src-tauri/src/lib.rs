@@ -1,12 +1,12 @@
 // Main Tauri Application
 
 use tauri::{Manager, RunEvent, WebviewWindowBuilder, WindowEvent};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc};
 use std::sync::Arc;
 use std::fs;
 
-use std::path::{Path, PathBuf as PathBuf};
-use tauri::path::PathResolver as PathResolver;
+use std::path::{PathBuf as PathBuf};
+// use tauri::path::PathResolver as PathResolver;
 use chrono::Local;
 
 // import our middleware
@@ -20,11 +20,11 @@ use crate::channels::{self as Channels, PlaybackState};
 mod commands;
 
 mod backend;
-use crate::backend::{self as 
-    data_playback, 
+use crate::backend::{ 
+    // data_playback, 
     telemetry_radio_interface,
-    tracker_interface,
-    video_capture_interface,
+    // tracker_interface,
+    // video_capture_interface,
 };
 
 // commands for tauri to call from frontend
@@ -81,7 +81,7 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
 
     // let telem_radio = telemetry_radio_interface::new(middleware.clone());
     // tauri::async_runtime::spawn(async move {
-        // telem_radio.run(shutdown_rx.clone()).await;
+    //     telem_radio.run(shutdown_rx.clone()).await;
     // });
 
     // let video_capture_onboard = video_capture_interface::new(middleware.clone());
