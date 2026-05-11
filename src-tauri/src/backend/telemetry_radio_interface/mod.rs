@@ -237,6 +237,7 @@ impl TelemetryRadio {
                     });
 
                     builder.finish(command_packet, None);
+                    self.command_sent_count += 1; // iterate our command sent count
 
                     // add framing
                     let mut send_buffer: Vec<u8> = Vec::new();
@@ -248,7 +249,6 @@ impl TelemetryRadio {
                         return RunResult::Error("writer thread died".into());
                     }
 
-                    
                 }
                 result = frame_rx.recv() => {
                     match result {
