@@ -1,0 +1,65 @@
+.ProgressBar {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    --bar-start-x: 30%;
+    --bottom-padding: 20px;
+    /* --title-start-x */
+}
+
+#progress-bar-title {
+    font-size: 2cqw;
+    line-height: 2cqw;
+    position: relative;
+    left: var(--bar-start-x);
+    transform: translateX(-100%)
+}
+
+.progress-container {
+    flex: 1;
+    width: 100%;
+    position: relative;
+    padding-bottom: var(--bottom-padding);
+}
+
+.progress-ticks-container {
+    position: absolute;
+    left: calc(var(--bar-start-x) + var(--bar-width)/2);
+    top: 0;
+    width: calc(100% - (var(--bar-start-x) - var(--bar-width)));
+    height: calc(100% - var(--bottom-padding));
+    display: flex;
+    flex-direction: column;
+    align-content: space-between;
+    padding-left: 10%;
+}
+
+.progress-bar-outline {
+    outline: 1px solid var(--outline-color);
+    flex: 1;
+    width: var(--bar-width);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+    left: calc(var(--bar-start-x) - var(--bar-width)/2);
+    background-color: var(--track-color);
+    border-radius: 500px;
+}
+
+.progress-bar-fill {
+    width: 100%;
+    height: 10%;
+    background-color: var(--color);
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+
+.progress-ticks-container > p {
+    position: relative;
+    line-height: 0;
+    margin: 0;
+}

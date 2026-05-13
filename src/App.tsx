@@ -1,49 +1,50 @@
-import { useState } from "react";
-// import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+import logo from "./Resources/HPRC-Logo-and-Text.svg";
+import testImg from "./Resources/bg-img-test.png";
+import ArcGauge from "./Components/ArcGauge";
+import ProgressBar from "./Components/ProgressBar";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          {/* <img src="/vite.svg" className="logo vite" alt="Vite logo" /> */}
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          {/* <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" /> */}
-        </a>
-        <a href="https://react.dev" target="_blank">
-          {/* <img src={reactLogo} className="logo react" alt="React logo" /> */}
-        </a>
+      <div></div>
+      <div className="container-secondary" id="title-container">
+        <p id="title-primary">WPI HPRC</p>
+        <p id="title-secondary">Worcester Polytechnic Institute High Power Rocketry Club</p>
+        {/* <p id="title-tertiary">Team 208</p> */}
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+      <div className="container-secondary"></div>
+      <ProgressBar title="Altitude"
+        ticknames={['0 ft', '5k ft', '10k ft', '15k ft', '20k ft', '25 ft']}
+        tickvalues={[0, 0.2, 0.4, 0.6, 0.8, 1.0]}
+      ></ProgressBar>
+      <div className="container-secondary" id="img-container">
+        <img className="img-fill" src={testImg}></img>
+      </div>
+      <ProgressBar title="Phase"
+        ticknames={['Boost', 'Coast', 'Apogee']}
+        tickvalues={[0, 0.2, 1]}
+      ></ProgressBar>
+      <div className="container-secondary" id="logo-container">
+              <img src={logo} id="logo-img"></img>
+      </div>
+      <div className="container-secondary" id="gauges-container">
+      <ArcGauge
+        value={79}
+        min={0}
+        max={120}
+        units="MPH"
+        label="SPEED"
+      />
+      <ArcGauge
+        value={5}
+        min={0}
+        max={18}
+        units="&nbsp;"
+        label="G-FORCE"
+      />
+      </div>
+      <div className="container-secondary"></div>
     </main>
   );
 }
