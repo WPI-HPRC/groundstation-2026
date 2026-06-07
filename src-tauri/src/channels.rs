@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::backend;
+
 pub struct ShutdownState {
-    pub shutdown_tx: tokio::sync::watch::Sender<()>,
+    pub shutdown: tokio_util::sync::CancellationToken,
 }
 
 pub struct PlaybackControlChannel {
@@ -23,4 +25,8 @@ pub struct HardwarePorts {
     pub live_video_port_tx: tokio::sync::mpsc::Sender<String>,
     pub tracking_video_port_tx: tokio::sync::mpsc::Sender<String>,
     pub tracker_port_tx: tokio::sync::mpsc::Sender<String>,
+}
+
+pub struct RemoteControlChannels {
+    pub remote_control_tx: tokio::sync::mpsc::Sender<backend::telemetry_radio_interface::hprc::Command>
 }

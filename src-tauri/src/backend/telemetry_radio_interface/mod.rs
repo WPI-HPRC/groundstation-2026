@@ -4,13 +4,13 @@ extern crate flatbuffers;
 #[path = "../../telemetry-generated/Packet_generated.rs"]
 mod packet_generated;
 pub use packet_generated::hprc;
+use tokio_util::sync::CancellationToken;
 
 use crate::middleware::telemetry_stores::TelemetryData;
-use crate::middleware::{self, Middleware};
+use crate::middleware::{Middleware};
 use std::io::{Read, Write};
 use std::sync::mpsc as std_mpsc;
 use std::sync::Arc;
-use tokio::sync::broadcast;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
@@ -75,13 +75,14 @@ pub struct TelemetryRadio {
 }
 
 impl TelemetryRadio {
-    pub async fn run(mut self, mut shutdown_rx: broadcast::Receiver<()>) {
+    pub async fn run(mut self, shutdown_rx: CancellationToken) {
         let mut current_port: Option<String> = None;
+
 
         loop {
             if current_port.is_none() {
                 tokio::select! {
-                    _ = shutdown_rx.recv() => {
+                    _ = shutdown_rx.cancelled() => {
                         tracing::info!("telem_radio: shutdown before port selected");
                         return;
                     }
@@ -92,7 +93,7 @@ impl TelemetryRadio {
             }
 
             let port_name = current_port.take().unwrap();
-            match self.run_connected(&port_name, &mut shutdown_rx).await {
+            match self.run_connected(&port_name, &shutdown_rx).await {
                 RunResult::Shutdown => {
                     tracing::info!("telem_radio: clean shutdown");
                     return;
@@ -106,7 +107,7 @@ impl TelemetryRadio {
                     current_port = Some(port_name);
                     tokio::select! {
                         _ = sleep(Duration::from_secs(2)) => {}
-                        _ = shutdown_rx.recv() => return,
+                        _ = shutdown_rx.cancelled() => return,
                         Some(new_port) = self.port_rx.recv() => {
                             current_port = Some(new_port);
                         }
@@ -119,7 +120,7 @@ impl TelemetryRadio {
     async fn run_connected(
         &mut self,
         port_name: &str,
-        shutdown_rx: &mut broadcast::Receiver<()>,
+        shutdown_rx: &CancellationToken,
     ) -> RunResult {
         let port = match serialport::new(port_name, self.baud_rate)
             .timeout(Duration::from_millis(100))
@@ -226,7 +227,7 @@ impl TelemetryRadio {
         // ── Select loop ───────────────────────────────────────────────────────
         loop {
             tokio::select! {
-                _ = shutdown_rx.recv() => {
+                _ = shutdown_rx.cancelled() => {
                     return RunResult::Shutdown;
                 }
                 Some(new_port) = self.port_rx.recv() => {
@@ -275,26 +276,29 @@ impl TelemetryRadio {
         tracing::debug!("telem_radio: rx {} bytes", frame.len());
 
         // take off framing header
-        let payload = &frame[HEADER_LEN..];
+        let frame_payload = &frame[HEADER_LEN..];
 
-        if let Ok(packet) = hprc::root_as_packet(&payload) {
+        if let Ok(packet) = hprc::root_as_packet(&frame_payload) {
             let mut middleware = self.middleware.lock().await;
             match packet.packet_type() {
                 hprc::PacketUnion::Rocket30KTelemetryPacket => self.handle_rocket30_kpacket(
                     &mut middleware,
-                    packet.packet_as_rocket_30_ktelemetry_packet().unwrap(),
+                    // .unwrap() is safe here bc we've already type matched in the match statement
+                    packet.packet_as_rocket_30_ktelemetry_packet().unwrap(), 
                 ),
                 hprc::PacketUnion::Rocket2StageTelemetryPacket => self.handle_rocket2_stage_packet(
                     &mut middleware,
+                    // .unwrap() is safe here bc we've already type matched in the match statement
                     packet.packet_as_rocket_2_stage_telemetry_packet().unwrap(),
                 ),
-                hprc::PacketUnion::RocketCanardsTelemetryPacket => self
-                    .handle_rocket_canards_packet(
+                hprc::PacketUnion::RocketCanardsTelemetryPacket => self.handle_rocket_canards_packet(
                         &mut middleware,
+                        // .unwrap() is safe here bc we've already type matched in the match statement
                         packet.packet_as_rocket_canards_telemetry_packet().unwrap(),
                     ),
                 hprc::PacketUnion::PayloadTelemetryPacket => self.handle_payload_packet(
                     &mut middleware,
+                    // .unwrap() is safe here bc we've already type matched in the match statement
                     packet.packet_as_payload_telemetry_packet().unwrap(),
                 ),
                 _ => (),
@@ -421,9 +425,9 @@ impl TelemetryRadio {
             );
         }
 
-        if let Some(covariance) = packet.covariance_diagonal() {
+        // if let Some(covariance) = packet.covariance_diagonal() {
             // idk lol
-        }
+        // }
     }
 
     fn handle_payload_packet(
@@ -476,6 +480,21 @@ impl TelemetryRadio {
             "battery voltage",
             TelemetryData::new().with_value(shared.battery_voltage() as f64),
         );
+        let _ = middleware.push_data(
+            &name,
+            "mosfet current",
+            TelemetryData::new().with_value(shared.mosfet_current() as f64),
+        );
+        let _ = middleware.push_data(
+            &name,
+            "mosfet state",
+            TelemetryData::new().with_value(shared.mosfet_state()),
+        );
+        let _ = middleware.push_data(
+            &name,
+            "last command received",
+            TelemetryData::new().with_value(shared.last_command_received() as u32),
+        );
     }
 
     fn handle_sensors(
@@ -484,7 +503,7 @@ impl TelemetryRadio {
         sensors: &hprc::Sensors,
         name: String,
     ) {
-        if let Some(asm330_data) = sensors.ASM330() {
+        if let Some(asm330_data) = sensors.asm330() {
             let _ = middleware.push_data(
                 &name,
                 "asm330 acc x",
@@ -517,7 +536,7 @@ impl TelemetryRadio {
             );
         }
 
-        if let Some(lsm6_data) = sensors.LSM6() {
+        if let Some(lsm6_data) = sensors.lsm6() {
             let _ = middleware.push_data(
                 &name,
                 "lsm6 acc x",
@@ -550,7 +569,7 @@ impl TelemetryRadio {
             );
         }
 
-        if let Some(lis2mdl_data) = sensors.LIS2MDL() {
+        if let Some(lis2mdl_data) = sensors.lis2mdl() {
             let _ = middleware.push_data(
                 &name,
                 "mag x",
@@ -568,7 +587,7 @@ impl TelemetryRadio {
             );
         }
 
-        if let Some(lps22_data) = sensors.LPS22() {
+        if let Some(lps22_data) = sensors.lps22() {
             let _ = middleware.push_data(
                 &name,
                 "pressure",
@@ -581,7 +600,7 @@ impl TelemetryRadio {
             );
         }
 
-        if let Some(liv3f_data) = sensors.LIV3F() {
+        if let Some(liv3f_data) = sensors.liv3f() {
             let _ = middleware.push_data(
                 &name,
                 "gps lock",
@@ -610,7 +629,7 @@ impl TelemetryRadio {
             let _ = middleware.push_data(
                 &name,
                 "gps epoch time",
-                TelemetryData::new().with_value(liv3f_data.epochTime()),
+                TelemetryData::new().with_value(liv3f_data.epoch_time()),
             );
         }
     }

@@ -29,6 +29,7 @@ csv = "1.4.0"
 flatbuffers = "25.12.19"
 serialport = "4.9.0"
 tracing = "0.1.44"
+tokio-util = { version = "0.7.18", features = ["rt"] }
 
 [dependencies.uuid]
 version = "1.20.0"
