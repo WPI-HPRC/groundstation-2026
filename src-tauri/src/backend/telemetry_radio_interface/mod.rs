@@ -237,6 +237,7 @@ impl TelemetryRadio {
                     let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(32);
 
                     // build command flatbuffer
+                    self.command_sent_count += 1; // iterate our command sent count
                     let command_pack = hprc::RemoteControlCommand::create(&mut builder, &hprc::RemoteControlCommandArgs{
                         command: cmd,
                         command_number: self.command_sent_count,
@@ -248,7 +249,7 @@ impl TelemetryRadio {
                     });
 
                     builder.finish(command_packet, None);
-                    self.command_sent_count += 1; // iterate our command sent count
+                    
 
                     // add framing
                     let mut send_buffer: Vec<u8> = Vec::new();
