@@ -1,0 +1,59 @@
+.rocket-viewer-card {
+    width: 100%;
+    height: 100%;
+
+    container-type: size;
+
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rocket-viewer-canvas {
+    width: min(95cqw, 95cqh);
+    height: min(95cqw, 95cqh);
+
+    min-width: 0;
+
+    border: 2px solid var(--accent-color);
+    border-radius: 20px;
+
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.rocket-viewer-canvas canvas {
+    width: 100%;
+    outline: 1px solid red;
+}
+
+.rocket-viewer-canvas::after {
+    content: "ATTITUDE";
+
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+
+    transform: translateX(-50%);
+
+    width: max-content;
+
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+
+    color: black;
+
+    pointer-events: none;
+    z-index: 10000;
+}

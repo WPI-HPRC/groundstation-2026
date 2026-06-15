@@ -1,60 +1,81 @@
 .arc-gauge {
-    --size: calc(25 * min(1cqh, 1cqw));
     --thickness: 30px;
     --value: 0.65;
-
-    width: var(--size);
-    height: var(--size);
-
-    position: relative;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.arc-gauge-svg {
-    position: absolute;
-    inset: 0;
 
     width: 100%;
     height: 100%;
 
+    position: relative;
+
+    container-type: size;
+
+    --gauge-unit: min(1cqw, 1cqh);    
+}
+
+.arc-gauge-svg {
+
+    position: absolute;
+
+    left: 50%;
+
+    top: 55%;
+
+    width: 100%;
+
+    height: 100%;
+
+    transform: translate(-50%, -50%);
+
+    display: block;
+
     overflow: visible;
+
 }
 
 .arc-gauge-text {
-    position: relative;
+
+    position: absolute;
+
+    left: 50%;
+
+    top: 55%;
+
     z-index: 1;
 
+    transform: translate(-50%, -50%);
+
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
+
     justify-content: center;
 
     text-align: center;
+
     color: var(--text-color);
 
-    transform: translateY(calc(var(--size) / 20));
+    pointer-events: none;
+
 }
 
 .arc-gauge-number {
-    font-size: calc(var(--size) / 3);
-    line-height: calc(var(--size) / 3);
+    font-size: calc(28 * var(--gauge-unit));
+    line-height: 1;
     font-weight: 300;
 }
 
 .arc-gauge-units {
-    font-size: calc(var(--size) / 15);
-    line-height: calc(var(--size) / 8);
-
+    font-size: calc(7 * var(--gauge-unit));
+    line-height: 1.4;
     letter-spacing: 0.15em;
     opacity: 0.8;
 }
 
 .arc-gauge-label {
-    font-size: calc(var(--size) / 10);
-
+    font-size: calc(8 * var(--gauge-unit));
+    line-height: 1.2;
     letter-spacing: 0.18em;
     font-weight: 500;
 }

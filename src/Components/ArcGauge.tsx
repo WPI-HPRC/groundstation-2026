@@ -1,3 +1,5 @@
+import "./ArcGauge.css";
+
 type ArcGaugeProps = {
     value: number;
     min?: number;
@@ -24,9 +26,8 @@ export default function ArcGauge({
     color = "var(--accent-color)",
     trackColor = "var(--bg-color-secondary)",
     textColor = "var(--fg-color)",
-    thickness = "30px",
+    thickness = "30",
 }: ArcGaugeProps) {
-
     const percent = Math.min(
         Math.max((value - min) / (max - min), 0),
         1
@@ -34,24 +35,11 @@ export default function ArcGauge({
 
     const rangeDeg = 240;
 
-    const sizePx = 400;
-    const center = sizePx / 2;
+    const viewBoxSize = 1000;
+    const center = viewBoxSize / 2;
 
     const thicknessPx = parseFloat(thickness);
-
-    const radius = center - thicknessPx / 2;
-
-    /*
-        SVG angles:
-        0°   = right
-        90°  = down
-        180° = left
-        270° = up
-    
-        We want the gauge centered vertically,
-        so compute the missing angle and split it
-        evenly around the bottom.
-    */
+    const radius = center - thicknessPx;
 
     const gapDeg = 360 - rangeDeg;
 
@@ -91,13 +79,14 @@ export default function ArcGauge({
                     "--color": color,
                     "--track-color": trackColor,
                     "--text-color": textColor,
-                    "--thickness": thickness,
+                    "--thickness": `${thicknessPx}px`,
                 } as React.CSSProperties
             }
         >
             <svg
                 className="arc-gauge-svg"
-                viewBox={`0 0 ${sizePx} ${sizePx}`}
+                viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+                preserveAspectRatio="xMidYMid meet"
             >
                 <path
                     d={arcPath(startAngle, endAngle)}
@@ -121,17 +110,17 @@ export default function ArcGauge({
                     {value}
                 </div>
 
-                {units &&
+                {units && (
                     <div className="arc-gauge-units">
                         {units}
                     </div>
-                }
+                )}
 
-                {label &&
+                {label && (
                     <div className="arc-gauge-label">
                         {label}
                     </div>
-                }
+                )}
             </div>
         </div>
     );
