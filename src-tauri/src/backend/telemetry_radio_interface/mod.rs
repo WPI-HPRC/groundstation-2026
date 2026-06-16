@@ -517,7 +517,88 @@ impl TelemetryRadio {
             self.handle_ekf(middleware, ekf, "payload".to_string());
         };
 
-        // TO:DO: finish implementation
+        if let Some(self_righting1_servo) = packet.self_righting1_servo() {
+            let _ = middleware.push_data("payload", "self_righting1_servo", 
+        TelemetryData::new().with_value(self_righting1_servo.commanded() as f64));
+        }
+
+        if let Some(self_righting2_servo) = packet.self_righting2_servo() {
+            let _ = middleware.push_data("payload", "self_righting2_servo", 
+        TelemetryData::new().with_value(self_righting2_servo.commanded() as f64));
+        }
+
+        if let Some(latch_servo) = packet.latch_servo() {
+            let _ = middleware.push_data("payload", "latch_servo", 
+        TelemetryData::new().with_value(latch_servo.commanded() as f64));
+        }
+
+        if let Some(antenna_servo) = packet.antenna_servo() {
+            let _ = middleware.push_data("payload", "antenna_servo", 
+        TelemetryData::new().with_value(antenna_servo.commanded() as f64));
+        }
+
+        if let Some(blob_data) = packet.blob_data() {
+            for blob in blob_data {
+                
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_x{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.x() as i32));
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_y{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.y() as i32));
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_width{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.width() as i32));
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_height{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.height() as i32));
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_ellipse_a{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.ellipse_a() as i32));
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_ellipse_b{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.ellipse_b() as i32));
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_rotation{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.rotation() as i32));
+                let _ = middleware.push_data(
+                    "payload", 
+                    &format!("blob_confidence{}",blob.index()).to_string(), 
+                    TelemetryData::new().with_value(blob.confidence() as f64));
+            }
+        }
+
+        let _ = middleware.push_data(
+            "payload", 
+            "horiz_x1", 
+            TelemetryData::new().with_value(packet.horiz_x1() as i32));
+
+        let _ = middleware.push_data(
+            "payload", 
+            "horiz_x2", 
+            TelemetryData::new().with_value(packet.horiz_x2() as i32));
+
+        let _ = middleware.push_data(
+            "payload", 
+            "horiz_y1", 
+            TelemetryData::new().with_value(packet.horiz_y1() as i32));
+
+        let _ = middleware.push_data(
+            "payload", 
+            "horiz_y2", 
+            TelemetryData::new().with_value(packet.horiz_y2() as i32));
+
+        let _ = middleware.push_data(
+            "payload", 
+            "horiz_valid", 
+            TelemetryData::new().with_value(packet.horiz_valid()));
     }
 
     fn handle_shared(

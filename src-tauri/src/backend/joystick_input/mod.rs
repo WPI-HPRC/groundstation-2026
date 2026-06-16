@@ -40,8 +40,6 @@ impl JoystickInput {
                 return;
             }
 
-            println!("{}",x);
-
             while let Some(Event { event, .. }) = gilrs.next_event() {
                 match event {
                     EventType::AxisChanged(Axis::LeftStickX, value, _) => x = value,
