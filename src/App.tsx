@@ -76,11 +76,10 @@ function App() {
       <ProgressBar
         title="Altitude (AGL)"
         secondary="UNOFFICIAL"
-        ticknames={['Launch Pad', '10 kft', '20 kft', '30 kft']}
+        ticknames={['0 ft', '10 kft', '20 kft', '30 kft']}
         tickvalues={[0, 0.333, 0.667, 1.0]}
         progress={altitudeFt / ALTITUDE_MAX_FT}
         thickness="8px"
-      // color="white"
       ></ProgressBar>
       <TrajectoryViewer points={trajectoryState.points}></TrajectoryViewer>
 
