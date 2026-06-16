@@ -8,28 +8,20 @@ import { RocketViewer } from "./Components/RocketViewer";
 function App() {
   return (
     <main className="container">
-      <div className="container-secondary">
-      </div>
-      <div className="container-secondary" id="title-container">
-        <div className="logo-container">
-          <p id="title-primary">WPI</p>
-          <img src={logo} id="logo-img"></img>
-        </div>
-        <p id="title-secondary">Worcester Polytechnic Institute High Power Rocketry Club</p>
-        {/* <p id="title-tertiary">Team 208</p> */}
-      </div>
-      <div className="container-secondary"></div>
-      <ProgressBar title="Altitude"
-        ticknames={['0 ft', '5k ft', '10k ft', '15k ft', '20k ft', '25 ft']}
-        tickvalues={[0, 0.2, 0.4, 0.6, 0.8, 1.0]}
+      <div></div>
+      <div></div>
+      <div></div>
+
+      <ProgressBar
+        title="ALTITUDE (AGL)"
+        secondary="UNOFFICIAL"
+        ticknames={['Launch Pad', '10 kft', '20 kft', '30 kft']}
+        tickvalues={[0, 0.333, 0.667, 1.0]}
+        thickness="8px"
+        // color="white"
       ></ProgressBar>
       {/* <LiveVideo></LiveVideo> */}
-      <div className="container-secondary"></div>
-      <ProgressBar title="Phase"
-        ticknames={['Boost', 'Coast', 'Apogee']}
-        tickvalues={[0, 0.2, 1]}
-      ></ProgressBar>
-      <div className="container-secondary"></div>
+
       <div className="container-secondary" id="gauges-container">
         <ArcGauge
           value={79}
@@ -38,7 +30,16 @@ function App() {
           units="MPH"
           label="SPEED"
         />
-        <RocketViewer   quaternion={{ x: 0, y: 0, z: 0, w: 1 }}></RocketViewer>
+
+        <RocketViewer quaternion={{ x: 0, y: 0, z: 0, w: 1 }}></RocketViewer>
+        <div className="container-secondary" id="title-container">
+        <div className="logo-container">
+          <p id="title-primary">WPI</p>
+          <img src={logo} id="logo-img"></img>
+        </div>
+        {/* <p id="title-secondary">Worcester Polytechnic Institute High Power Rocketry Club</p> */}
+        {/* <p id="title-tertiary">Team 208</p> */}
+      </div>
         <ArcGauge
           value={5}
           min={0}

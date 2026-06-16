@@ -5,6 +5,7 @@ import "./ProgressBar.css"
 
 type ProgressBarProps = {
     title: string,
+    secondary: string,
     ticknames: Array<string>
     tickvalues: Array<number>
 
@@ -18,6 +19,7 @@ type ProgressBarProps = {
 
 function ProgressBar({
     title,
+    secondary = "", 
     ticknames,
     tickvalues,
     color = "var(--accent-color)",
@@ -26,13 +28,6 @@ function ProgressBar({
     textColor = "var(--fg-color)",
     thickness = "10%",
 }: ProgressBarProps) {
-
-    const [greetMsg, setGreetMsg] = useState("");
-    const [name, setName] = useState("");
-
-    async function greet() {
-        setGreetMsg(await invoke("greet", { name }));
-    }
 
     return (
         <div className="ProgressBar" style={
@@ -44,7 +39,10 @@ function ProgressBar({
                     "--bar-width": thickness,
                 } as React.CSSProperties
             }>
+                <div>
             <p id="progress-bar-title">{title}</p>
+            <p id="progress-bar-secondary">{secondary}</p>
+            </div>
             <div className="progress-container">
                 <div className="progress-bar-outline">
                     <div className="progress-bar-fill"></div>

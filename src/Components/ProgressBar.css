@@ -1,20 +1,29 @@
 .ProgressBar {
-    text-align: center;
+    /* text-align: center; */
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
 
     --bar-start-x: 30%;
     --bottom-padding: 20px;
     /* --title-start-x */
+    backdrop-filter: blur(1px);
+
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+
 }
 
 #progress-bar-title {
-    font-size: 2cqw;
-    line-height: 2cqw;
-    position: relative;
-    left: var(--bar-start-x);
-    transform: translateX(-100%)
+    font-size: 1.5cqw;
+    line-height: 0cqw;
+    font-weight: 1000;
+}
+
+#progress-bar-secondary {
+    font-size: 1cqw;
+    font-weight: 500;
 }
 
 .progress-container {
@@ -47,7 +56,6 @@
     position: relative;
     left: calc(var(--bar-start-x) - var(--bar-width)/2);
     background-color: var(--track-color);
-    border-radius: 500px;
 }
 
 .progress-bar-fill {
@@ -56,10 +64,15 @@
     background-color: var(--color);
     border-bottom-left-radius: inherit;
     border-bottom-right-radius: inherit;
+
+    outline: 1px solid var(--fg-color-secondary);
+
+    border-radius: 1000px 1000px 0 0;
 }
 
 .progress-ticks-container > p {
     position: relative;
     line-height: 0;
     margin: 0;
+    font-size: 1cqw;
 }
