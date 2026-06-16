@@ -1,0 +1,74 @@
+:root {
+  --bg-color: black;
+  --bg-color-secondary: #3e3e3e;
+  --fg-color: white;
+  --fg-color-secondary: #c1c1c1;
+  --accent-color: #af283a;
+
+  --series-x: #ff5a5f; /* red */
+  --series-y: #4ade80; /* green */
+  --series-z: #38bdf8; /* blue */
+  --series-1: #fbbf24; /* amber */
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg-color);
+  color: var(--fg-color);
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.dash-root {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+.dash-sidebar {
+  flex: 0 0 30%;
+  max-width: 30%;
+  border-right: 1px solid var(--bg-color-secondary);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.dash-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dash-tabbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 0;
+}
+
+.dash-tab {
+  background: var(--bg-color-secondary);
+  color: var(--fg-color-secondary);
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+}
+
+.dash-tab.active {
+  background: var(--accent-color);
+  color: var(--fg-color);
+}
+
+.dash-tab-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
