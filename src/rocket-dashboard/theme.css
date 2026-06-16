@@ -48,6 +48,19 @@ html, body, #root {
   overflow: hidden;
 }
 
+.dash-attitude-card {
+  background: rgba(208, 28, 52, 0.49);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+}
+
 .dash-main {
   flex: 1 1 auto;
   display: flex;
@@ -80,4 +93,109 @@ html, body, #root {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+}
+
+.ts-chart.ts-chart-compact .u-title {
+  text-align: left;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.ts-chart.ts-chart-compact .u-legend {
+  top: 24px !important;
+  max-width: 100%;
+}
+
+.ts-chart.ts-chart-stacked-legend .u-legend {
+  top: 28px !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
+
+.ts-chart.ts-chart-stacked-legend .u-legend tr {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ts-chart.ts-chart-stacked-legend .u-legend th,
+.ts-chart.ts-chart-stacked-legend .u-legend td {
+  display: inline-block;
+}
+
+@media (max-width: 760px) {
+  html, body, #root {
+    overflow: hidden;
+  }
+
+  .dash-root {
+    flex-direction: column;
+  }
+
+  .dash-sidebar {
+    flex: 0 0 auto;
+    max-width: none;
+    width: 100%;
+    max-height: 34vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--bg-color-secondary);
+    flex-direction: row;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .dash-sidebar > * {
+    flex: 0 0 clamp(116px, 38vw, 170px);
+  }
+
+  .dash-attitude-card {
+    flex-basis: clamp(180px, 52vw, 240px);
+    min-height: 120px;
+    height: 120px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .dash-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .dash-tabbar {
+    padding: 6px 6px 0;
+  }
+
+  .dash-tab {
+    flex: 1 1 0;
+    padding: 9px 8px;
+  }
+
+  .dash-tab-body {
+    min-height: 0;
+  }
+
+  .dash-graphs-stack {
+    gap: 10px !important;
+    padding: 8px !important;
+  }
+
+  .dash-chart-panel {
+    flex: 0 0 190px !important;
+    min-height: 190px !important;
+  }
+
+  .uplot .u-title {
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  .uplot .u-legend {
+    font-size: 11px;
+  }
 }

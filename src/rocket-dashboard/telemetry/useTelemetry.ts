@@ -5,13 +5,17 @@ import { FlightState } from "./types";
 import { RingBuffer } from "./ringBuffer";
 import { PeakTracker } from "./peaks";
 import { CHART_WINDOW, RENDER_HZ } from "../config";
+import { chartX, normalizeEpochMs, updateLaunchWallMs, type ChartTimeMode } from "./timebase";
 
 export interface TelemetrySnapshot {
   latest: TelemetryFrame | null;
   droppedFrames: number;
   /** Parallel arrays for charts: timestamps (s) + series values. */
   history: {
-    t: number[]; // seconds relative to first sample
+    /** Wall-clock unix seconds pre-launch; T+ seconds after launch. */
+    t: number[];
+    /** How to format the chart x-axis for the current flight phase. */
+    timeMode: ChartTimeMode;
     gyro: [number[], number[], number[]];
     accel: [number[], number[], number[]];
     mag: [number[], number[], number[]];
@@ -34,11 +38,21 @@ export function useTelemetry(source: TelemetrySource): TelemetrySnapshot {
   const maxVelRef = useRef(new PeakTracker());
   const maxAccelRef = useRef(new PeakTracker());
   const versionRef = useRef(0);
+  const launchWallMsRef = useRef<number | null>(null);
+  const lastStateRef = useRef<FlightState | null>(null);
 
   const [snapshot, setSnapshot] = useState<TelemetrySnapshot>(() => emptySnapshot());
 
   useEffect(() => {
     const unsub = source.subscribe((frame) => {
+      const frameMs = normalizeEpochMs(frame.timestamp);
+      launchWallMsRef.current = updateLaunchWallMs(
+        frame.state,
+        frameMs,
+        launchWallMsRef.current,
+        lastStateRef.current
+      );
+      lastStateRef.current = frame.state;
       framesRef.current.push(frame);
       maxVelRef.current.update(frame.velocity);
       maxAccelRef.current.update(frame.acceleration);
@@ -56,6 +70,7 @@ export function useTelemetry(source: TelemetrySource): TelemetrySnapshot {
         setSnapshot(
           buildSnapshot(
             framesRef.current.toArray(),
+            launchWallMsRef.current,
             maxVelRef.current.max,
             maxAccelRef.current.max,
             "diagnostics" in (source as any) ? (source as TelemetrySourceWithDiagnostics).diagnostics().droppedFrames : 0
@@ -68,6 +83,8 @@ export function useTelemetry(source: TelemetrySource): TelemetrySnapshot {
       window.clearInterval(interval);
       unsub();
       source.stop();
+      launchWallMsRef.current = null;
+      lastStateRef.current = null;
     };
   }, [source]);
 
@@ -80,6 +97,7 @@ function emptySnapshot(): TelemetrySnapshot {
     droppedFrames: 0,
     history: {
       t: [],
+      timeMode: "wall",
       gyro: [[], [], []],
       accel: [[], [], []],
       mag: [[], [], []],
@@ -94,14 +112,24 @@ function emptySnapshot(): TelemetrySnapshot {
   };
 }
 
-function buildSnapshot(frames: TelemetryFrame[], maxVel: number, maxAccel: number, droppedFrames: number): TelemetrySnapshot {
+function buildSnapshot(
+  frames: TelemetryFrame[],
+  launchWallMs: number | null,
+  maxVel: number,
+  maxAccel: number,
+  droppedFrames: number
+): TelemetrySnapshot {
   const s = emptySnapshot();
   s.droppedFrames = droppedFrames;
   if (frames.length === 0) return s;
-  const t0 = frames[0].timestamp;
+
+  const wallNow = Date.now();
+  s.history.timeMode = launchWallMs == null ? "wall" : "mission";
+
   for (const f of frames) {
-    const ts = (f.timestamp - t0) / 1000;
-    s.history.t.push(ts);
+    const x = chartX(f.timestamp, launchWallMs, wallNow);
+    if (x == null) continue;
+    s.history.t.push(x);
     s.history.gyro[0].push(f.gyro.x);
     s.history.gyro[1].push(f.gyro.y);
     s.history.gyro[2].push(f.gyro.z);

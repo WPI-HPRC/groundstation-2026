@@ -148,6 +148,28 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     // .resizable(true)
     // .build()?;
 
+    // Rocket telemetry dashboard — its own window, separate from "main".
+    let _rocket_dashboard = WebviewWindowBuilder::new(
+        app,
+        "rocket-dashboard",
+        tauri::WebviewUrl::App("rocket-dashboard.html".into()),
+    )
+    .title("HPRC Rocket Telemetry Dashboard")
+    .inner_size(1400.0, 900.0)
+    .resizable(true)
+    .build()?;
+
+    // Console window — separate, minimizable; streams telemetry lines.
+    let _console = WebviewWindowBuilder::new(
+        app,
+        "console",
+        tauri::WebviewUrl::App("console.html".into()),
+    )
+    .title("HPRC Console")
+    .inner_size(700.0, 500.0)
+    .resizable(true)
+    .build()?;
+
     Ok(())
 }
 
