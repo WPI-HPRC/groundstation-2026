@@ -58,6 +58,8 @@ body {
   flex-direction: column;
   margin: 0;
   padding: 0;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -65,26 +67,38 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: inherit;
+  width: 100%;
+  height: 100%;
 }
  
 .container {
+  --gauges-height: 20cqh;
+  --overlay-gauge-gap: 4cqh;
+
   flex: 1;
   margin: 0;
   padding: 0;
+  width: 100vw;
   height: 100vh;
-  display: grid;
-  grid-template-columns: 15% 50% 35%;
-  grid-template-rows: 10% 65% 35%;
-  gap: 10px;
-
-  background-image: url('./Resources/image.png');
-  /* background-image: url('./Resources/bg-img-test.png'); */
-  background-size: cover;
-  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+  container-type: size;
+  background: black;
 
   box-shadow: inset 0px 0px 10vw 5vw rgba(0, 0, 0, 0.2);
 }
+
+.video-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('./Resources/image.png');
+  /* Swap this layer for the live video feed when it is ready. */
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 /* 
 .container::before {
   content: "";
@@ -186,12 +200,13 @@ body {
 
     flex: 1;
 
-    height: 20cqh;
+    height: var(--gauges-height);
 
     padding-top: 20px;
     margin: 0;
 
     position: absolute;
+    z-index: 1;
     inset: auto 0 0 0;
 
     pointer-events: none;

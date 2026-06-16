@@ -2,7 +2,6 @@ import "./App.css";
 import logo from "./Resources/HPRC-Logo-and-Text.svg";
 import ArcGauge from "./Components/ArcGauge";
 import ProgressBar from "./Components/ProgressBar";
-import LiveVideo from "./Components/LiveVideo";
 import { RocketViewer } from "./Components/RocketViewer";
 import { TrajectoryViewer } from "./Components/TrajectoryViewer";
 import { MaxStats } from "./Components/MaxStats";
@@ -10,10 +9,7 @@ import { MaxStats } from "./Components/MaxStats";
 function App() {
   return (
     <main className="container">
-      <div></div>
-      <div></div>
-      <div></div>
-
+      <div className="video-layer" aria-hidden="true" />
       <ProgressBar
         title="Altitude (AGL)"
         secondary="UNOFFICIAL"
@@ -22,7 +18,6 @@ function App() {
         thickness="8px"
       // color="white"
       ></ProgressBar>
-      <div></div>
       <TrajectoryViewer debug groundStation={{ x: -3000, y: 0, z: 1000 }}></TrajectoryViewer>
 
       {/* <LiveVideo></LiveVideo> */}
