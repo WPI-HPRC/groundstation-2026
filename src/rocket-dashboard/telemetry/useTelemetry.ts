@@ -45,26 +45,19 @@ export function useTelemetry(source: TelemetrySource): TelemetrySnapshot {
     });
     source.start();
 
-    let raf = 0;
-    let lastRender = 0;
     let lastVersionRendered = -1;
     const minInterval = 1000 / RENDER_HZ;
 
-    const tick = (now: number) => {
-      if (now - lastRender >= minInterval) {
-        lastRender = now;
-        const v = versionRef.current;
-        if (v !== lastVersionRendered) {
-          lastVersionRendered = v;
-          setSnapshot(buildSnapshot(framesRef.current.toArray(), maxVelRef.current.max, maxAccelRef.current.max));
-        }
+    const interval = window.setInterval(() => {
+      const v = versionRef.current;
+      if (v !== lastVersionRendered) {
+        lastVersionRendered = v;
+        setSnapshot(buildSnapshot(framesRef.current.toArray(), maxVelRef.current.max, maxAccelRef.current.max));
       }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    }, minInterval);
 
     return () => {
-      cancelAnimationFrame(raf);
+      window.clearInterval(interval);
       unsub();
       source.stop();
     };
