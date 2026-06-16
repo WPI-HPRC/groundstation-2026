@@ -159,7 +159,7 @@ impl TelemetryStore {
         let mut row = {
             self.fields
                 .iter()
-                .map(|(entry)| {
+                .map(|entry| {
                         let k = entry.key().clone();
                         let f = entry.value();
 

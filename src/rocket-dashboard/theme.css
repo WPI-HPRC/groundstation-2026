@@ -1,0 +1,201 @@
+:root {
+  --bg-color: #FAF9F6;
+  --bg-color-secondary: #ece9e4;
+  --fg-color: #111827;
+  --fg-color-secondary: #4b5563;
+  --accent-color: #af283a;
+
+  /* Pastel flight-state colors (badge backgrounds). */
+  --flight-state-prelaunch: #d1d5db;       /* soft gray */
+  --flight-state-boost: #fecaca;           /* pastel red */
+  --flight-state-coast: #fde68a;           /* pastel amber */
+  --flight-state-apogee: #e9d5ff;          /* pastel purple */
+  --flight-state-drogue-descent: #bae6fd;  /* pastel sky */
+  --flight-state-main-descent: #a7f3d0;    /* pastel teal */
+  --flight-state-landed: #bbf7d0;          /* pastel green */
+
+  --series-x: #ff5a5f; /* red */
+  --series-y: #4ade80; /* green */
+  --series-z: #38bdf8; /* blue */
+  --series-1: #fbbf24; /* amber */
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg-color);
+  color: var(--fg-color);
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.dash-root {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+.dash-sidebar {
+  flex: 0 0 30%;
+  max-width: 30%;
+  border-right: 1px solid var(--bg-color-secondary);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.dash-attitude-card {
+  background: rgba(208, 28, 52, 0.49);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+}
+
+.dash-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dash-tabbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 0;
+}
+
+.dash-tab {
+  background: var(--bg-color-secondary);
+  color: var(--fg-color-secondary);
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+}
+
+.dash-tab.active {
+  background: var(--accent-color);
+  color: var(--fg-color);
+}
+
+.dash-tab-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ts-chart.ts-chart-compact .u-title {
+  text-align: left;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.ts-chart.ts-chart-compact .u-legend {
+  top: 24px !important;
+  max-width: 100%;
+}
+
+.ts-chart.ts-chart-stacked-legend .u-legend {
+  top: 28px !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
+
+.ts-chart.ts-chart-stacked-legend .u-legend tr {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ts-chart.ts-chart-stacked-legend .u-legend th,
+.ts-chart.ts-chart-stacked-legend .u-legend td {
+  display: inline-block;
+}
+
+@media (max-width: 760px) {
+  html, body, #root {
+    overflow: hidden;
+  }
+
+  .dash-root {
+    flex-direction: column;
+  }
+
+  .dash-sidebar {
+    flex: 0 0 auto;
+    max-width: none;
+    width: 100%;
+    max-height: 34vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--bg-color-secondary);
+    flex-direction: row;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .dash-sidebar > * {
+    flex: 0 0 clamp(116px, 38vw, 170px);
+  }
+
+  .dash-attitude-card {
+    flex-basis: clamp(180px, 52vw, 240px);
+    min-height: 120px;
+    height: 120px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .dash-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .dash-tabbar {
+    padding: 6px 6px 0;
+  }
+
+  .dash-tab {
+    flex: 1 1 0;
+    padding: 9px 8px;
+  }
+
+  .dash-tab-body {
+    min-height: 0;
+  }
+
+  .dash-graphs-stack {
+    gap: 10px !important;
+    padding: 8px !important;
+  }
+
+  .dash-chart-panel {
+    flex: 0 0 190px !important;
+    min-height: 190px !important;
+  }
+
+  .uplot .u-title {
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  .uplot .u-legend {
+    font-size: 11px;
+  }
+}
