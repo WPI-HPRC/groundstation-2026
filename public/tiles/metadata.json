@@ -1,0 +1,12 @@
+{
+  "origin": {
+    "lat": 31.031080142681898,
+    "lon": -103.5400953745281
+  },
+  "radiusKm": 6,
+  "minZoom": 10,
+  "maxZoom": 16,
+  "source": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  "attribution": "Imagery © Esri, Maxar, Earthstar Geographics",
+  "downloadedAt": "2026-06-16T09:10:52.918Z"
+}
