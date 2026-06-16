@@ -1,49 +1,56 @@
-import { useState } from "react";
-// import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+import logo from "./Resources/HPRC-Logo-and-Text.svg";
+import ArcGauge from "./Components/ArcGauge";
+import ProgressBar from "./Components/ProgressBar";
+import LiveVideo from "./Components/LiveVideo";
+import { RocketViewer } from "./Components/RocketViewer";
+import { TrajectoryViewer } from "./Components/TrajectoryViewer";
+import { MaxStats } from "./Components/MaxStats";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+      <div></div>
+      <div></div>
+      <div></div>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          {/* <img src="/vite.svg" className="logo vite" alt="Vite logo" /> */}
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          {/* <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" /> */}
-        </a>
-        <a href="https://react.dev" target="_blank">
-          {/* <img src={reactLogo} className="logo react" alt="React logo" /> */}
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+      <ProgressBar
+        title="Altitude (AGL)"
+        secondary="UNOFFICIAL"
+        ticknames={['Launch Pad', '10 kft', '20 kft', '30 kft']}
+        tickvalues={[0, 0.333, 0.667, 1.0]}
+        thickness="8px"
+      // color="white"
+      ></ProgressBar>
+      <div></div>
+      <TrajectoryViewer debug groundStation={{ x: -3000, y: 0, z: 1000 }}></TrajectoryViewer>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+      {/* <LiveVideo></LiveVideo> */}
+
+      <div className="container-secondary" id="gauges-container">
+        <MaxStats data={{speed: 1000, altitude: 27800, gForce: 17}}></MaxStats>
+        <RocketViewer quaternion={{ x: 0, y: 0, z: 0, w: 1 }}></RocketViewer>
+        <div className="container-secondary" id="title-container">
+          <div className="logo-container">
+            <p id="title-primary">WPI</p>
+            <img src={logo} id="logo-img"></img>
+          </div>
+        </div>
+        <ArcGauge
+          value={79}
+          min={0}
+          max={120}
+          units="MPH"
+          label="SPEED"
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+        <ArcGauge
+          value={5}
+          min={0}
+          max={18}
+          units="&nbsp;"
+          label="G-FORCE"
+        />
+      </div>
     </main>
   );
 }

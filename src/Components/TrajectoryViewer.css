@@ -1,0 +1,43 @@
+.trajectory-viewer-card {
+    position: relative;
+    overflow: hidden;
+}
+.trajectory-viewer-canvas::after {
+    content: "Trajectory";
+
+    position: absolute;
+
+    left: 50%;
+    bottom: 18px;
+
+    transform: translateX(-50%);
+
+    font-size: 1.5cqw;
+    font-weight: 500;
+
+    color: white;
+
+    pointer-events: none;
+    z-index: 10;
+}
+
+.trajectory-viewer-canvas {
+    backdrop-filter: blur(3x);
+    
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.4);
+    margin-right: 10%;
+    position: absolute;
+
+    right: 0;
+    bottom: 0;
+
+    width: 50%;
+    height: 50%;
+
+    overflow: hidden;
+}
+
+.trajectory-viewer-canvas canvas {
+    display: block;
+}
