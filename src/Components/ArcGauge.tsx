@@ -23,7 +23,7 @@ export default function ArcGauge({
     label = "",
     units = "",
 
-    color = "var(--accent-color)",
+    color = "var(--fg-color)",
     trackColor = "var(--bg-color-secondary)",
     textColor = "var(--fg-color)",
     thickness = "30",
@@ -106,18 +106,18 @@ export default function ArcGauge({
             </svg>
 
             <div className="arc-gauge-text">
-                <div className="arc-gauge-number">
+                <div className="arc-gauge-number" style={{color: "var(--fg-color)"}}>
                     {value}
                 </div>
 
                 {units && (
-                    <div className="arc-gauge-units">
+                    <div className="arc-gauge-units" style={{color: "var(--fg-color-secondary)"}}>
                         {units}
                     </div>
                 )}
 
                 {label && (
-                    <div className="arc-gauge-label">
+                    <div className="arc-gauge-label" style={{color: "var(--fg-color-secondary)"}}>
                         {label}
                     </div>
                 )}

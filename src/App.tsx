@@ -23,7 +23,8 @@ function App() {
         ticknames={['0 ft', '5k ft', '10k ft', '15k ft', '20k ft', '25 ft']}
         tickvalues={[0, 0.2, 0.4, 0.6, 0.8, 1.0]}
       ></ProgressBar>
-      <LiveVideo></LiveVideo>
+      {/* <LiveVideo></LiveVideo> */}
+      <div className="container-secondary"></div>
       <ProgressBar title="Phase"
         ticknames={['Boost', 'Coast', 'Apogee']}
         tickvalues={[0, 0.2, 1]}

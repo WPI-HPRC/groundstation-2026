@@ -13,12 +13,11 @@
 }
 
 .rocket-viewer-canvas {
-    width: min(95cqw, 95cqh);
-    height: min(95cqw, 95cqh);
+    /* width: min(95cqw, 95cqh); */
+    /* height: min(95cqw, 95cqh); */
 
     min-width: 0;
 
-    border: 2px solid var(--accent-color);
     border-radius: 20px;
 
     position: relative;
@@ -32,7 +31,6 @@
 
 .rocket-viewer-canvas canvas {
     width: 100%;
-    outline: 1px solid red;
 }
 
 .rocket-viewer-canvas::after {

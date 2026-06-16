@@ -5,7 +5,6 @@
 
     overflow: hidden;
     border-radius: 25px;
-    outline: 3px solid var(--accent-color);
     position: relative;
 }
 
