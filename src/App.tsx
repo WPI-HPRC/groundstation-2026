@@ -4,7 +4,8 @@ import ArcGauge from "./Components/ArcGauge";
 import ProgressBar from "./Components/ProgressBar";
 import LiveVideo from "./Components/LiveVideo";
 import { RocketViewer } from "./Components/RocketViewer";
-import { LiveTrajectoryDebug } from "./Components/LiveTrajectoryDebug";
+import { TrajectoryViewer } from "./Components/TrajectoryViewer";
+import { MaxStats } from "./Components/MaxStats";
 
 function App() {
   return (
@@ -22,19 +23,18 @@ function App() {
       // color="white"
       ></ProgressBar>
       <div></div>
-      <LiveTrajectoryDebug></LiveTrajectoryDebug>
+      <TrajectoryViewer debug groundStation={{ x: -3000, y: 0, z: 1000 }}></TrajectoryViewer>
 
       {/* <LiveVideo></LiveVideo> */}
 
       <div className="container-secondary" id="gauges-container">
+        <MaxStats data={{speed: 1000, altitude: 27800, gForce: 17}}></MaxStats>
         <RocketViewer quaternion={{ x: 0, y: 0, z: 0, w: 1 }}></RocketViewer>
         <div className="container-secondary" id="title-container">
           <div className="logo-container">
             <p id="title-primary">WPI</p>
             <img src={logo} id="logo-img"></img>
           </div>
-          {/* <p id="title-secondary">Worcester Polytechnic Institute High Power Rocketry Club</p> */}
-          {/* <p id="title-tertiary">Team 208</p> */}
         </div>
         <ArcGauge
           value={79}

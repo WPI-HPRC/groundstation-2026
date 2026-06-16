@@ -8,10 +8,12 @@
     --bar-start-x: 30%;
     --bottom-padding: 20px;
     /* --title-start-x */
-    backdrop-filter: blur(1px);
+
+    backdrop-filter: blur(3x);
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.4);
 
     border-radius: 20px;
-    background-color: rgba(0, 0, 0, 0.3);
     margin-left: 10%;
 }
 
@@ -65,7 +67,7 @@
     border-bottom-left-radius: inherit;
     border-bottom-right-radius: inherit;
 
-    outline: 1px solid var(--fg-color-secondary);
+    /* outline: 1px solid var(--fg-color-secondary); */
 
     border-radius: 1000px 1000px 0 0;
 }

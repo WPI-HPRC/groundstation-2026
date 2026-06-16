@@ -1,18 +1,12 @@
 .trajectory-viewer-card {
     position: relative;
     overflow: hidden;
-
-    backdrop-filter: blur(1px);
-
-    border-radius: 20px;
-    background-color: rgba(0, 0, 0, 0.3);
-    margin-right: 10%;
 }
-
-.trajectory-viewer-card::after {
+.trajectory-viewer-canvas::after {
     content: "Trajectory";
 
     position: absolute;
+
     left: 50%;
     bottom: 18px;
 
@@ -28,13 +22,18 @@
 }
 
 .trajectory-viewer-canvas {
+    backdrop-filter: blur(3x);
+    
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.4);
+    margin-right: 10%;
     position: absolute;
 
-    left: 0;
-    top: 0;
+    right: 0;
+    bottom: 0;
 
-    width: 100%;
-    height: 100%;
+    width: 50%;
+    height: 50%;
 
     overflow: hidden;
 }

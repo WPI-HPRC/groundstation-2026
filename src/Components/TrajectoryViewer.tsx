@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import "./TrajectoryViewer.css";
 
@@ -9,7 +9,9 @@ export type TrajectoryPoint = {
 };
 
 type TrajectoryViewerProps = {
-  points: TrajectoryPoint[];
+  points?: TrajectoryPoint[];
+  debug?: boolean;
+  groundStation?: TrajectoryPoint;
 };
 
 function generateDebugRocketTrajectory() {
@@ -18,43 +20,65 @@ function generateDebugRocketTrajectory() {
   const duration = 30;
   const peakAltitudeFt = 30000;
   const sampleRate = 10;
-
   const totalSamples = duration * sampleRate;
 
   for (let i = 0; i <= totalSamples; i++) {
     const t = i / sampleRate;
     const u = t / duration;
 
-    const downrangeFt = 12000 * u;
-    const altitudeFt = peakAltitudeFt * 4 * u * (1 - u);
-    const crossrangeFt = 800 * Math.sin(u * Math.PI * 2);
-
     points.push({
-      x: downrangeFt,
-      y: altitudeFt,
-      z: crossrangeFt,
+      x: 12000 * u,
+      y: peakAltitudeFt * 4 * u * (1 - u),
+      z: 800 * Math.sin(u * Math.PI * 2),
     });
   }
 
   return points;
 }
 
-export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
+export function TrajectoryViewer({
+  points,
+  debug = false,
+  groundStation,
+}: TrajectoryViewerProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const rotationGroupRef = useRef<THREE.Group | null>(null);
+  const contentGroupRef = useRef<THREE.Group | null>(null);
 
-  const trajectoryGroupRef = useRef<THREE.Group | null>(null);
   const trajectoryLineRef = useRef<THREE.Line | null>(null);
   const pointMarkersRef = useRef<THREE.InstancedMesh | null>(null);
 
-  const normalizedPointsRef = useRef<THREE.Vector3[]>([]);
+  const groundStationMarkerRef = useRef<THREE.Mesh | null>(null);
+  const groundStationLineRef = useRef<THREE.Line | null>(null);
 
-  const debugPoints = useMemo(() => generateDebugRocketTrajectory(), []);
+  const [debugLivePoints, setDebugLivePoints] = useState<TrajectoryPoint[]>([]);
 
-  const displayedPoints = points.length > 0 ? points : debugPoints;
+  useEffect(() => {
+    if (!debug && points?.length) return;
+
+    const fullTrajectory = generateDebugRocketTrajectory();
+
+    setDebugLivePoints([]);
+
+    let i = 1;
+
+    const interval = window.setInterval(() => {
+      setDebugLivePoints(fullTrajectory.slice(0, i));
+      i += 1;
+
+      if (i > fullTrajectory.length) {
+        window.clearInterval(interval);
+      }
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [debug, points?.length]);
+
+  const displayedPoints =
+    points && points.length > 0 && !debug
+      ? points
+      : debugLivePoints;
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -62,11 +86,14 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
     const mount = mountRef.current;
 
     const scene = new THREE.Scene();
-    sceneRef.current = scene;
 
-    const trajectoryGroup = new THREE.Group();
-    trajectoryGroupRef.current = trajectoryGroup;
-    scene.add(trajectoryGroup);
+    const rotationGroup = new THREE.Group();
+    rotationGroupRef.current = rotationGroup;
+    scene.add(rotationGroup);
+
+    const contentGroup = new THREE.Group();
+    contentGroupRef.current = contentGroup;
+    rotationGroup.add(contentGroup);
 
     const camera = new THREE.PerspectiveCamera(
       35,
@@ -75,9 +102,8 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
       10000
     );
 
-    camera.position.set(5, 3, 8);
+    camera.position.set(6, 4, 10);
     camera.lookAt(0, 0, 0);
-    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -87,7 +113,6 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     mount.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
 
     const axisLength = 2.4;
     const axisWidth = 0.015;
@@ -118,39 +143,64 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
       return axis;
     }
 
-    trajectoryGroup.add(makeAxis(new THREE.Vector3(1, 0, 0)));
-    trajectoryGroup.add(makeAxis(new THREE.Vector3(0, 1, 0)));
-    trajectoryGroup.add(makeAxis(new THREE.Vector3(0, 0, 1)));
+    contentGroup.add(makeAxis(new THREE.Vector3(1, 0, 0)));
+    contentGroup.add(makeAxis(new THREE.Vector3(0, 1, 0)));
+    contentGroup.add(makeAxis(new THREE.Vector3(0, 0, 1)));
 
-    const lineGeometry = new THREE.BufferGeometry();
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.9,
-    });
+    const trajectoryLine = new THREE.Line(
+      new THREE.BufferGeometry(),
+      new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.9,
+      })
+    );
 
-    const trajectoryLine = new THREE.Line(lineGeometry, lineMaterial);
     trajectoryLineRef.current = trajectoryLine;
-    trajectoryGroup.add(trajectoryLine);
+    contentGroup.add(trajectoryLine);
 
-    const markerGeometry = new THREE.SphereGeometry(0.035, 12, 12);
+    const markerGeometry = new THREE.SphereGeometry(0.05, 12, 12);
     const markerMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
       opacity: 0.75,
     });
 
-    const maxMarkers = 2000;
-
     const pointMarkers = new THREE.InstancedMesh(
       markerGeometry,
       markerMaterial,
-      maxMarkers
+      2000
     );
 
     pointMarkers.count = 0;
     pointMarkersRef.current = pointMarkers;
-    trajectoryGroup.add(pointMarkers);
+    contentGroup.add(pointMarkers);
+
+    const groundStationMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 16, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0xAF283A,
+        transparent: true,
+        opacity: 1,
+      })
+    );
+
+    groundStationMarker.visible = false;
+    groundStationMarkerRef.current = groundStationMarker;
+    contentGroup.add(groundStationMarker);
+
+    const groundStationLine = new THREE.Line(
+      new THREE.BufferGeometry(),
+      new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.45,
+      })
+    );
+
+    groundStationLine.visible = false;
+    groundStationLineRef.current = groundStationLine;
+    contentGroup.add(groundStationLine);
 
     const handleResize = () => {
       if (!mountRef.current) return;
@@ -174,8 +224,8 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
     const animate = () => {
       animationId = requestAnimationFrame(animate);
 
-      if (trajectoryGroupRef.current) {
-        trajectoryGroupRef.current.rotation.y += 0.003;
+      if (rotationGroupRef.current) {
+        rotationGroupRef.current.rotation.y += 0.003;
       }
 
       renderer.render(scene, camera);
@@ -187,7 +237,7 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
       cancelAnimationFrame(animationId);
       resizeObserver.disconnect();
 
-      trajectoryGroup.traverse((object) => {
+      rotationGroup.traverse((object) => {
         if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
           object.geometry.dispose();
 
@@ -201,14 +251,14 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
         }
       });
 
-      scene.remove(trajectoryGroup);
+      scene.remove(rotationGroup);
 
-      trajectoryGroupRef.current = null;
+      rotationGroupRef.current = null;
+      contentGroupRef.current = null;
       trajectoryLineRef.current = null;
       pointMarkersRef.current = null;
-      sceneRef.current = null;
-      cameraRef.current = null;
-      rendererRef.current = null;
+      groundStationMarkerRef.current = null;
+      groundStationLineRef.current = null;
 
       renderer.dispose();
 
@@ -221,8 +271,19 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
   useEffect(() => {
     const trajectoryLine = trajectoryLineRef.current;
     const pointMarkers = pointMarkersRef.current;
+    const contentGroup = contentGroupRef.current;
+    const groundStationMarker = groundStationMarkerRef.current;
+    const groundStationLine = groundStationLineRef.current;
 
-    if (!trajectoryLine || !pointMarkers) return;
+    if (
+      !trajectoryLine ||
+      !pointMarkers ||
+      !contentGroup ||
+      !groundStationMarker ||
+      !groundStationLine
+    ) {
+      return;
+    }
 
     const cleanPoints = displayedPoints
       .filter(
@@ -235,25 +296,28 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
 
     if (cleanPoints.length < 2) return;
 
-    const box = new THREE.Box3().setFromPoints(cleanPoints);
-    const center = new THREE.Vector3();
-    const size = new THREE.Vector3();
+    const launchPoint = cleanPoints[0].clone();
 
-    box.getCenter(center);
+    const box = new THREE.Box3().setFromPoints(cleanPoints);
+    const size = new THREE.Vector3();
     box.getSize(size);
 
     const maxDimension = Math.max(size.x, size.y, size.z);
-    const desiredSize = 4;
+    const desiredSize = 3.5;
     const scale = maxDimension > 0 ? desiredSize / maxDimension : 1;
 
-    const normalizedPoints = cleanPoints.map((p) =>
-      p.clone().sub(center).multiplyScalar(scale)
-    );
+    const normalizePoint = (p: THREE.Vector3) =>
+      p.clone().sub(launchPoint).multiplyScalar(scale);
 
-    normalizedPointsRef.current = normalizedPoints;
+    const normalizedPoints = cleanPoints.map(normalizePoint);
+
+    const normalizedBox = new THREE.Box3().setFromPoints(normalizedPoints);
+    const normalizedSize = new THREE.Vector3();
+    normalizedBox.getSize(normalizedSize);
+
+    contentGroup.position.y = -normalizedSize.y * 0.45;
 
     trajectoryLine.geometry.dispose();
-
     trajectoryLine.geometry = new THREE.BufferGeometry().setFromPoints(
       normalizedPoints
     );
@@ -272,7 +336,34 @@ export function TrajectoryViewer({ points }: TrajectoryViewerProps) {
     }
 
     pointMarkers.instanceMatrix.needsUpdate = true;
-  }, [displayedPoints]);
+
+    if (groundStation) {
+      const normalizedGroundStation = normalizePoint(
+        new THREE.Vector3(
+          groundStation.x,
+          groundStation.y,
+          groundStation.z
+        )
+      );
+
+      const currentRocketPosition =
+        normalizedPoints[normalizedPoints.length - 1];
+
+      groundStationMarker.visible = true;
+      groundStationMarker.position.copy(normalizedGroundStation);
+
+      groundStationLine.visible = true;
+      groundStationLine.geometry.dispose();
+      groundStationLine.geometry =
+        new THREE.BufferGeometry().setFromPoints([
+          normalizedGroundStation,
+          currentRocketPosition,
+        ]);
+    } else {
+      groundStationMarker.visible = false;
+      groundStationLine.visible = false;
+    }
+  }, [displayedPoints, groundStation]);
 
   return (
     <div className="trajectory-viewer-card">
