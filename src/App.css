@@ -180,7 +180,7 @@ body {
 
 
     display: grid;
-    grid-template-columns: 15% 15% 40% 30%;
+    grid-template-columns: 30% 40% 15% 15%;
 
     flex: 1;
 
@@ -258,7 +258,7 @@ body {
 
     clip-path: polygon(
         0 0,
-        60% 0,
+        80% 0,
         100% 55%,
         100% 100%,
         0 100%
@@ -270,7 +270,7 @@ body {
     right: 0;
 
     clip-path: polygon(
-        40% 0,
+        20% 0,
         100% 0,
         100% 100%,
         0 100%,

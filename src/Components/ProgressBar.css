@@ -12,7 +12,7 @@
 
     border-radius: 20px;
     background-color: rgba(0, 0, 0, 0.3);
-
+    margin-left: 10%;
 }
 
 #progress-bar-title {
@@ -47,7 +47,7 @@
 
 .progress-bar-outline {
     outline: 1px solid var(--outline-color);
-    flex: 1;
+    /* flex: 2; */
     width: var(--bar-width);
     height: 100%;
     display: flex;
@@ -68,6 +68,10 @@
     outline: 1px solid var(--fg-color-secondary);
 
     border-radius: 1000px 1000px 0 0;
+}
+
+.progress-ticks-container {
+    /* flex: 1; */
 }
 
 .progress-ticks-container > p {

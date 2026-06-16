@@ -39,19 +39,19 @@ function ProgressBar({
                     "--bar-width": thickness,
                 } as React.CSSProperties
             }>
-                <div>
+            <div>
             <p id="progress-bar-title">{title}</p>
             <p id="progress-bar-secondary">{secondary}</p>
             </div>
             <div className="progress-container">
-                <div className="progress-bar-outline">
-                    <div className="progress-bar-fill"></div>
-                </div>
                 <div className="progress-ticks-container">
                     {ticknames.map((tickname, index) => (
                         // Always include a unique 'key' prop for list items
                         <p id={`tick-${index}`} style={{position: 'absolute', bottom: `${tickvalues[index] * 100}%`}}>{tickname}</p>
                     ))}
+                </div>
+                <div className="progress-bar-outline">
+                    <div className="progress-bar-fill"></div>
                 </div>
             </div>
         </div>
