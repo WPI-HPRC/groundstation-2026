@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useState } from "react";
 import type { TelemetrySnapshot } from "../../telemetry/useTelemetry";
+import { FlightState } from "../../telemetry/types";
 import type { LocalPoint } from "../../../trajectory-viz";
 import { LAUNCH_ORIGIN } from "../../config";
 
@@ -21,6 +22,7 @@ interface PathState {
   pts: LocalPoint[];
   lastTs: number | null;
   maxZ: number;
+  lastState: FlightState | null;
 }
 
 export function MapTab({ snap }: MapTabProps) {
@@ -29,22 +31,27 @@ export function MapTab({ snap }: MapTabProps) {
   // Accumulate the full path by appending each newest sample as it arrives.
   // The reducer is pure (keyed on the sample timestamp) so it's idempotent and
   // StrictMode-safe — re-running it for the same frame is a no-op.
-  const [path, setPath] = useState<PathState>({ pts: [], lastTs: null, maxZ: 0 });
+  const [path, setPath] = useState<PathState>({ pts: [], lastTs: null, maxZ: 0, lastState: null });
   const latest = snap.latest;
 
   useEffect(() => {
     if (!latest) return;
     setPath((prev) => {
       if (prev.lastTs === latest.timestamp) return prev;
-      // Timestamp going backwards means a new flight/session — start fresh.
-      const reset = prev.lastTs !== null && latest.timestamp < prev.lastTs;
+      // New session / loop: clear when re-entering PreLaunch or timestamps rewind.
+      const enteringPreLaunch =
+        latest.state === FlightState.PreLaunch &&
+        prev.lastState !== null &&
+        prev.lastState !== FlightState.PreLaunch;
+      const reset =
+        enteringPreLaunch || (prev.lastTs !== null && latest.timestamp < prev.lastTs);
       const base = reset ? [] : prev.pts;
       const baseMaxZ = reset ? 0 : prev.maxZ;
       const p = latest.positionLocal;
       const next = base.concat({ x: p.x, y: p.y, z: p.z });
       if (next.length > MAP_PATH_MAX) next.splice(0, next.length - MAP_PATH_MAX);
       const maxZ = Math.max(baseMaxZ, p.z);
-      return { pts: next, lastTs: latest.timestamp, maxZ };
+      return { pts: next, lastTs: latest.timestamp, maxZ, lastState: latest.state };
     });
   }, [latest]);
 
