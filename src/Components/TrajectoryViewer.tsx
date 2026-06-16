@@ -294,7 +294,15 @@ export function TrajectoryViewer({
       )
       .map((p) => new THREE.Vector3(p.x, p.y, p.z));
 
-    if (cleanPoints.length < 2) return;
+    if (cleanPoints.length < 2) {
+      trajectoryLine.geometry.dispose();
+      trajectoryLine.geometry = new THREE.BufferGeometry();
+      pointMarkers.count = 0;
+      pointMarkers.instanceMatrix.needsUpdate = true;
+      groundStationMarker.visible = false;
+      groundStationLine.visible = false;
+      return;
+    }
 
     const launchPoint = cleanPoints[0].clone();
 

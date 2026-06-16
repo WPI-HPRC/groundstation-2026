@@ -5,6 +5,7 @@ type ProgressBarProps = {
     secondary: string,
     ticknames: Array<string>
     tickvalues: Array<number>
+    progress?: number;
 
     color?: string;
     trackColor?: string;
@@ -19,6 +20,7 @@ function ProgressBar({
     secondary = "", 
     ticknames,
     tickvalues,
+    progress = 0,
     color = "var(--accent-color)",
     trackColor = "var(--bg-color-secondary)",
     outlineColor = "none",
@@ -44,11 +46,14 @@ function ProgressBar({
                 <div className="progress-ticks-container">
                     {ticknames.map((tickname, index) => (
                         // Always include a unique 'key' prop for list items
-                        <p id={`tick-${index}`} style={{position: 'absolute', bottom: `${tickvalues[index] * 100}%`}}>{tickname}</p>
+                        <p key={tickname} id={`tick-${index}`} style={{position: 'absolute', bottom: `${tickvalues[index] * 100}%`}}>{tickname}</p>
                     ))}
                 </div>
                 <div className="progress-bar-outline">
-                    <div className="progress-bar-fill"></div>
+                    <div
+                        className="progress-bar-fill"
+                        style={{ height: `${Math.min(Math.max(progress, 0), 1) * 100}%` }}
+                    ></div>
                 </div>
             </div>
         </div>
