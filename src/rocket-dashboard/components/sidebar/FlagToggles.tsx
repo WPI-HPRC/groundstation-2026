@@ -1,55 +1,34 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-const FALLBACK_FLAGS = [
-  "ArmFlight",
-  "DeArmFlight",
-  "Reset",
-  "RemoteStartOn",
-  "RemoteStartOff",
-  "CanardsTest",
-  "CanardsReset",
-  "CanardsDisable",
-  "CanardsEnable",
-  "StartEstimator",
-  "Abort",
+const COMMANDS: { label: string; cmd: number }[] = [
+  { label: "ArmFlight", cmd: 0 },
+  { label: "DeArmFlight", cmd: 1 },
+  { label: "Reset", cmd: 2 },
+  { label: "RemoteStartOn", cmd: 3 },
+  { label: "RemoteStartOff", cmd: 4 },
+  { label: "CanardsTest", cmd: 5 },
+  { label: "CanardsReset", cmd: 6 },
+  { label: "CanardsDisable", cmd: 7 },
+  { label: "CanardsEnable", cmd: 8 },
+  { label: "StartEstimator", cmd: 9 },
+  { label: "Abort", cmd: 10 },
 ];
 
 export function FlagToggles() {
-  const [flags, setFlags] = useState<string[]>([]);
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState(COMMANDS[0]?.label ?? "");
   const [error, setError] = useState<string | null>(null);
-  const didInitRef = useRef(false);
-
-  const loadFlags = useCallback(async () => {
-    try {
-      const fromBackend = await invoke<string[]>("get_remote_control_flag_names");
-      const next = fromBackend.length > 0 ? fromBackend : FALLBACK_FLAGS;
-      setFlags(next);
-      setSelected((prev) => (prev && next.includes(prev) ? prev : next[0] ?? ""));
-      setError(null);
-    } catch {
-      setFlags(FALLBACK_FLAGS);
-      setSelected((prev) => prev || FALLBACK_FLAGS[0]);
-      setError("flags unavailable");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (didInitRef.current) return;
-    didInitRef.current = true;
-    void loadFlags();
-  }, [loadFlags]);
+  const selectedCmd = COMMANDS.find((c) => c.label === selected)?.cmd ?? null;
 
   const send = useCallback(async () => {
-    if (!selected) return;
+    if (selectedCmd == null) return;
     try {
-      await invoke("send_remote_control_flag", { commandName: selected });
+      await invoke("send_command", { cmd: selectedCmd });
       setError(null);
     } catch {
-      setError("could not send flag");
+      setError("command unavailable");
     }
-  }, [selected]);
+  }, [selectedCmd]);
 
   return (
     <div
@@ -77,23 +56,28 @@ export function FlagToggles() {
             padding: 6,
           }}
         >
-          <option value="">{error ?? "Select flag"}</option>
-          {flags.map((flag) => (
-            <option key={flag} value={flag}>
-              {flag}
+          {/* Placeholder for error display; intentionally not user-selectable. */}
+          {error && (
+            <option value="" disabled hidden>
+              {error}
+            </option>
+          )}
+          {COMMANDS.map((c) => (
+            <option key={c.label} value={c.label}>
+              {c.label}
             </option>
           ))}
         </select>
         <button
           onClick={() => void send()}
-          disabled={!selected}
+          disabled={selectedCmd == null}
           style={{
             background: "var(--bg-color-secondary)",
             color: "var(--fg-color)",
             border: "none",
             borderRadius: 4,
             padding: "6px 12px",
-            cursor: selected ? "pointer" : "not-allowed",
+            cursor: selectedCmd == null ? "not-allowed" : "pointer",
           }}
         >
           Send

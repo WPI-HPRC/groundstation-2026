@@ -11,14 +11,21 @@ const STATE_COLOR_VAR: Record<FlightState, string> = {
 };
 
 export function StatePanel({ state }: { state: FlightState | null }) {
+  const bg = state ? STATE_COLOR_VAR[state] : "var(--bg-color-secondary)";
+  const fg = state ? "var(--fg-color)" : "var(--fg-color-secondary)";
   return (
     <div style={{ textAlign: "center", padding: "8px 0" }}>
       <div style={{ fontSize: 12, letterSpacing: 2, color: "var(--fg-color-secondary)" }}>STATE</div>
       <div
         style={{
-          fontSize: "clamp(20px, 4vw, 40px)",
+          marginTop: 6,
+          display: "inline-block",
+          padding: "6px 20px",
+          border: "1px solid rgba(17, 24, 39, 0.25)",
+          fontSize: "clamp(14px, 2.2vw, 20px)",
           fontWeight: 800,
-          color: state ? STATE_COLOR_VAR[state] : "var(--fg-color-secondary)",
+          background: bg,
+          color: fg,
         }}
       >
         {state ?? "—"}
