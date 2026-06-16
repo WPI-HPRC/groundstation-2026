@@ -17,7 +17,7 @@ use crate::middleware::Middleware;
 
 // our channels for misc IPC
 mod channels; 
-use crate::channels::{self as Channels, PlaybackState}; 
+use crate::channels::{self as Channels, LiveVideoHandle, PlaybackState, TrackingCameraHandle}; 
 
 mod commands;
 
@@ -26,7 +26,7 @@ use crate::backend::{
     // data_playback, 
     telemetry_radio_interface,
     // tracker_interface,
-    // video_capture_interface,
+    video_capture_interface,
 };
 
 // commands for tauri to call from frontend
@@ -62,11 +62,11 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     let(playback_tx, playback_rx) = tokio::sync::watch::channel::<PlaybackState>(PlaybackState::NoData);
 
     // create a channel to communicate hardware ports
-    let(telemetry_radio_port_tx, telemetry_radio_port_rx) = tokio::sync::mpsc::channel::<String>(8);
-    let(live_video_port_tx, live_video_port_rx) = mpsc::channel::<String>(8);
-    let(tracking_video_port_tx, tracking_video_port_rx) = tokio::sync::mpsc::channel::<String>(8);
-    let(tracker_port_tx, tracker_port_rx) = tokio::sync::mpsc::channel::<String>(8);
-    let(pointing_stick_port_tx, pointing_stick_port_rx) = tokio::sync::mpsc::channel::<String>(8);
+    // let(telemetry_radio_port_tx, telemetry_radio_port_rx) = tokio::sync::mpsc::channel::<String>(8);
+    // let(live_video_port_tx, live_video_port_rx) = mpsc::channel::<String>(8);
+    // let(tracking_video_port_tx, tracking_video_port_rx) = tokio::sync::mpsc::channel::<String>(8);
+    // let(tracker_port_tx, tracker_port_rx) = tokio::sync::mpsc::channel::<String>(8);
+    // let(pointing_stick_port_tx, pointing_stick_port_rx) = tokio::sync::mpsc::channel::<String>(8);
 
     let(remote_control_tx, remote_control_rx) = tokio::sync::mpsc::channel::<Command>(8);
     let(payload_control_tx, payload_control_rx) = tokio::sync::mpsc::channel::<(f32, f32)>(8);
@@ -75,7 +75,7 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     // give all our comms channels to tauri so we can access them in the frontend commands
     app_handle.manage(Channels::ShutdownState { shutdown });
     app_handle.manage(Channels::PlaybackControlChannel { playback_tx, playback_rx });
-    app_handle.manage(Channels::HardwarePorts { telemetry_radio_port_tx, live_video_port_tx, tracking_video_port_tx, tracker_port_tx, pointing_stick_port_tx });
+    // app_handle.manage(Channels::HardwarePorts { telemetry_radio_port_tx, live_video_port_tx, tracking_video_port_tx, tracker_port_tx, pointing_stick_port_tx });
     app_handle.manage(Channels::RemoteControlChannels {remote_control_tx, payload_control_tx});
 
 
@@ -94,12 +94,29 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     });
     app_handle.manage(telem_radio_handle);
 
+    let live_video_shutdown = shutdown_rx.clone();
+    let (live_video_cam, live_video_cam_handle) = video_capture_interface::new("live_vide", middleware.clone());
+    tauri::async_runtime::spawn(async move {
+        live_video_cam.run(live_video_shutdown).await;
+    });
+    app_handle.manage(LiveVideoHandle(live_video_cam_handle));
+
+    let tracking_cam_shutdown = shutdown_rx.clone();
+    let (tracking_cam, tracking_cam_handle) = video_capture_interface::new("tracking", middleware.clone());
+    tauri::async_runtime::spawn(async move {
+        tracking_cam.run(tracking_cam_shutdown).await;
+    });
+    app_handle.manage(TrackingCameraHandle(tracking_cam_handle));
+
+
     // let telem_shutdown_rx2 = shutdown_rx.clone();
     // let (telem_radio2, telem_radio_handle2) 
     //     = telemetry_radio_interface::new(middleware.clone());
     // tauri::async_runtime::spawn(async move {
     //     telem_radio2.run(telem_shutdown_rx2).await;
     // });
+
+    
 
 
     // let video_capture_onboard = video_capture_interface::new(middleware.clone());
@@ -130,8 +147,6 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     // .resizable(true)
     // .build()?;
 
-    
-
     Ok(())
 }
 
@@ -142,24 +157,20 @@ pub fn run() {
         .setup(|app| Ok(setup_backend(app)?))
 
         .invoke_handler(tauri::generate_handler![
-            // Playback control
-            // commands::set_playback_state,
-            // commands::get_playback_state,
-
-            // Telemetry (read-only)
+            commands::get_serial_port_names,
+            commands::set_telem_serial_port,
+            commands::send_command,
             commands::get_telemetry,
             commands::get_latest_telemetry,
             commands::get_telemetry_store_names,
-
-            // Video (read-only)
             commands::get_video_stream_names,
             commands::get_latest_video_frame,
-    
-
-            // Global recording control
-            commands::get_recording_status,
+            commands::list_video_devices,
+            commands::set_front_camera_device,
+            commands::set_payload_camera_device,
             commands::start_recording_all,
             commands::stop_recording_all,
+            commands::get_recording_status,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
