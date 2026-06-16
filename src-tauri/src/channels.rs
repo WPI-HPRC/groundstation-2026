@@ -25,8 +25,10 @@ pub struct HardwarePorts {
     pub live_video_port_tx: tokio::sync::mpsc::Sender<String>,
     pub tracking_video_port_tx: tokio::sync::mpsc::Sender<String>,
     pub tracker_port_tx: tokio::sync::mpsc::Sender<String>,
+    pub pointing_stick_port_tx: tokio::sync::mpsc::Sender<String>,
 }
 
 pub struct RemoteControlChannels {
-    pub remote_control_tx: tokio::sync::mpsc::Sender<backend::telemetry_radio_interface::hprc::Command>
+    pub remote_control_tx: tokio::sync::mpsc::Sender<backend::telemetry_radio_interface::hprc::Command>,
+    pub payload_control_tx: tokio::sync::mpsc::Sender<(f32,f32)>,
 }

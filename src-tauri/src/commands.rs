@@ -1,7 +1,8 @@
-use crate::middleware::{
+use crate::{backend::telemetry_radio_interface::{self, TelemetryRadioHandle, hprc}, middleware::{
     Middleware, TelemetryDataFrontend, VideoFrameFrontend
-};
+}};
 use tauri::State;
+// use std::alloc::Global;
 // use serde::Serialize;
 // use std::collections::HashMap;
 // use crate::Channels;
@@ -27,6 +28,34 @@ use tauri::State;
 // ) -> Result<Channels::PlaybackState, String> {
 //     Ok(playback_channel.playback_rx.borrow().clone())
 // }
+
+/* =========================================================
+   SERIAL/VIDEO PORT CHOOSING (WRITE + READ)
+   ========================================================= */
+
+#[tauri::command]
+pub async fn get_serial_port_names(
+) -> Result<Vec<String>, String> {
+    Ok(TelemetryRadioHandle::available_ports())
+}
+
+#[tauri::command]
+async fn set_telem_serial_port(
+    telem_backend: State<'_, TelemetryRadioHandle>,
+    port_name: String,
+) -> Result<(), String> {
+    telem_backend.send_serial_port(port_name).await
+}
+
+#[tauri::command]
+pub async fn send_command(
+    telem_backend: State<'_, TelemetryRadioHandle>,
+    cmd: u8,
+) -> Result<(), String> {
+    let cmd = hprc::Command(cmd);
+    telem_backend.send_command(cmd).await
+}
+
 
 /* =========================================================
    TELEMETRY (READ ONLY + DTO)
