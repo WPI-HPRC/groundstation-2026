@@ -1,6 +1,9 @@
-use crate::{backend::telemetry_radio_interface::{self, TelemetryRadioHandle, hprc}, middleware::{
-    Middleware, TelemetryDataFrontend, VideoFrameFrontend
-}};
+use crate::{
+    backend::telemetry_radio_interface::{TelemetryRadioHandle, hprc}, 
+    channels::{LiveVideoHandle, TrackingCameraHandle}, 
+    middleware::{Middleware, TelemetryDataFrontend, VideoFrameFrontend},
+    backend::video_capture_interface::CameraHandle,
+};
 use tauri::State;
 // use std::alloc::Global;
 // use serde::Serialize;
@@ -40,7 +43,7 @@ pub async fn get_serial_port_names(
 }
 
 #[tauri::command]
-async fn set_telem_serial_port(
+pub async fn set_telem_serial_port(
     telem_backend: State<'_, TelemetryRadioHandle>,
     port_name: String,
 ) -> Result<(), String> {
@@ -55,7 +58,6 @@ pub async fn send_command(
     let cmd = hprc::Command(cmd);
     telem_backend.send_command(cmd).await
 }
-
 
 /* =========================================================
    TELEMETRY (READ ONLY + DTO)
@@ -105,7 +107,7 @@ pub async fn get_telemetry_store_names(
 }
 
 /* =========================================================
-   VIDEO (READ ONLY)
+   VIDEO
    ========================================================= */
 
 #[tauri::command]
@@ -121,6 +123,27 @@ pub async fn get_latest_video_frame(
     stream_name: String,
 ) -> Result<Option<VideoFrameFrontend>, String> {
     Ok(middleware.get_latest_video_frame(&stream_name))
+}
+
+#[tauri::command]
+pub fn list_video_devices() -> Vec<String> {
+    CameraHandle::available_devices()
+}
+
+#[tauri::command]
+pub async fn set_front_camera_device(
+    camera_handle: tauri::State<'_, LiveVideoHandle>,
+    device: String,
+) -> Result<(), String> {
+    camera_handle.0.set_device(device).await
+}
+
+#[tauri::command]
+pub async fn set_payload_camera_device(
+    camera_handle: tauri::State<'_, TrackingCameraHandle>,
+    device: String,
+) -> Result<(), String> {
+    camera_handle.0.set_device(device).await
 }
 
 /* =========================================================

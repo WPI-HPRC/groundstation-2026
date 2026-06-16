@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::backend;
+use crate::backend::{self, video_capture_interface};
 
 pub struct ShutdownState {
     pub shutdown: tokio_util::sync::CancellationToken,
@@ -32,3 +32,6 @@ pub struct RemoteControlChannels {
     pub remote_control_tx: tokio::sync::mpsc::Sender<backend::telemetry_radio_interface::hprc::Command>,
     pub payload_control_tx: tokio::sync::mpsc::Sender<(f32,f32)>,
 }
+
+pub struct LiveVideoHandle(pub video_capture_interface::CameraHandle);
+pub struct TrackingCameraHandle(pub video_capture_interface::CameraHandle);
