@@ -264,9 +264,9 @@ export function FlightMap3D({
     }
 
     // Feed the true-3D path layer (ENU meters relative to its fixed origin).
-    if (layerRef.current && layerOriginRef.current) {
-      layerRef.current.setPoints(toEnuMeters(trajectory, layerOriginRef.current));
-    }
+    const enu =
+      layerOriginRef.current != null ? toEnuMeters(trajectory, layerOriginRef.current) : null;
+    if (layerRef.current && enu) layerRef.current.setPoints(enu);
 
     if (!followRef.current || coords.length === 0) return;
 
@@ -280,10 +280,7 @@ export function FlightMap3D({
 
     // Inflate the ground bounds by the vertical extent so fitBounds — which is
     // 2D-only — still zooms out enough to keep the elevated path in frame.
-    const enu = layerOriginRef.current
-      ? toEnuMeters(trajectory, layerOriginRef.current)
-      : [];
-    const maxAlt = enu.reduce((m, p) => Math.max(m, p.z), 0);
+    const maxAlt = (enu ?? []).reduce((m, p) => Math.max(m, p.z), 0);
     if (maxAlt > 0) {
       const c0 = bounds.getCenter();
       const dLat = (maxAlt * ALT_FIT_FACTOR) / 111320;
