@@ -6,8 +6,7 @@ import ProgressBar from "./Components/ProgressBar";
 import { RocketViewer } from "./Components/RocketViewer";
 import { TrajectoryViewer, type TrajectoryPoint } from "./Components/TrajectoryViewer";
 import { MaxStats } from "./Components/MaxStats";
-import { MOCK_UPDATE_HZ } from "./rocket-dashboard/config";
-import { MockTelemetrySource } from "./rocket-dashboard/telemetry/MockTelemetrySource";
+import { createTelemetrySource } from "./rocket-dashboard/telemetry/createTelemetrySource";
 import { FlightState, useTelemetry } from "./rocket-dashboard/telemetry/useTelemetry";
 import type { TelemetryFrame } from "./rocket-dashboard/telemetry/types";
 
@@ -56,7 +55,7 @@ function trajectoryReducer(state: TrajectoryState, frame: TelemetryFrame): Traje
 }
 
 function App() {
-  const source = useMemo(() => new MockTelemetrySource({ updateHz: MOCK_UPDATE_HZ }), []);
+  const source = useMemo(() => createTelemetrySource(), []);
   const snap = useTelemetry(source);
   const latest = snap.latest;
   const [trajectoryState, updateTrajectory] = useReducer(trajectoryReducer, initialTrajectoryState);

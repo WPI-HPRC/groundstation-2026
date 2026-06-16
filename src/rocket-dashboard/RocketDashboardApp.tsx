@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
 import "./theme.css";
-import { MockTelemetrySource } from "./telemetry/MockTelemetrySource";
-import { TauriTelemetrySource } from "./telemetry/TauriTelemetrySource";
+import { createTelemetrySource } from "./telemetry/createTelemetrySource";
 import { useTelemetry } from "./telemetry/useTelemetry";
-import { MOCK_UPDATE_HZ } from "./config";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { GraphsTab } from "./components/tabs/GraphsTab";
 import { MapTab } from "./components/tabs/MapTab";
@@ -14,12 +12,7 @@ export function RocketDashboardApp() {
   const [tab, setTab] = useState<TabKey>("graphs");
 
   // The source is created once and lives for the app's lifetime.
-  const source = useMemo(() => {
-    const isTauri = typeof window !== "undefined" && "__TAURI__" in window;
-    return isTauri
-      ? new TauriTelemetrySource({ updateHz: MOCK_UPDATE_HZ })
-      : new MockTelemetrySource({ updateHz: MOCK_UPDATE_HZ });
-  }, []);
+  const source = useMemo(() => createTelemetrySource(), []);
   const snap = useTelemetry(source);
 
   return (
