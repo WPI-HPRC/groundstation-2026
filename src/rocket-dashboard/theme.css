@@ -1,9 +1,17 @@
 :root {
-  --bg-color: black;
-  --bg-color-secondary: #3e3e3e;
-  --fg-color: white;
-  --fg-color-secondary: #c1c1c1;
+  --bg-color: #FAF9F6;
+  --bg-color-secondary: #ece9e4;
+  --fg-color: #111827;
+  --fg-color-secondary: #4b5563;
   --accent-color: #af283a;
+
+  --flight-state-prelaunch: #9ca3af;
+  --flight-state-boost: #ef4444;
+  --flight-state-coast: #f59e0b;
+  --flight-state-apogee: #a78bfa;
+  --flight-state-drogue-descent: #38bdf8;
+  --flight-state-main-descent: #22d3ee;
+  --flight-state-landed: #4ade80;
 
   --series-x: #ff5a5f; /* red */
   --series-y: #4ade80; /* green */
