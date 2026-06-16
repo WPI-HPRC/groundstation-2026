@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { TelemetrySource } from "./TelemetrySource";
+import type { TelemetrySource, TelemetrySourceWithDiagnostics } from "./TelemetrySource";
 import type { TelemetryFrame } from "./types";
 import { FlightState } from "./types";
 import { RingBuffer } from "./ringBuffer";
@@ -8,6 +8,7 @@ import { CHART_WINDOW, RENDER_HZ } from "../config";
 
 export interface TelemetrySnapshot {
   latest: TelemetryFrame | null;
+  droppedFrames: number;
   /** Parallel arrays for charts: timestamps (s) + series values. */
   history: {
     t: number[]; // seconds relative to first sample
@@ -52,7 +53,14 @@ export function useTelemetry(source: TelemetrySource): TelemetrySnapshot {
       const v = versionRef.current;
       if (v !== lastVersionRendered) {
         lastVersionRendered = v;
-        setSnapshot(buildSnapshot(framesRef.current.toArray(), maxVelRef.current.max, maxAccelRef.current.max));
+        setSnapshot(
+          buildSnapshot(
+            framesRef.current.toArray(),
+            maxVelRef.current.max,
+            maxAccelRef.current.max,
+            "diagnostics" in (source as any) ? (source as TelemetrySourceWithDiagnostics).diagnostics().droppedFrames : 0
+          )
+        );
       }
     }, minInterval);
 
@@ -69,6 +77,7 @@ export function useTelemetry(source: TelemetrySource): TelemetrySnapshot {
 function emptySnapshot(): TelemetrySnapshot {
   return {
     latest: null,
+    droppedFrames: 0,
     history: {
       t: [],
       gyro: [[], [], []],
@@ -85,8 +94,9 @@ function emptySnapshot(): TelemetrySnapshot {
   };
 }
 
-function buildSnapshot(frames: TelemetryFrame[], maxVel: number, maxAccel: number): TelemetrySnapshot {
+function buildSnapshot(frames: TelemetryFrame[], maxVel: number, maxAccel: number, droppedFrames: number): TelemetrySnapshot {
   const s = emptySnapshot();
+  s.droppedFrames = droppedFrames;
   if (frames.length === 0) return s;
   const t0 = frames[0].timestamp;
   for (const f of frames) {

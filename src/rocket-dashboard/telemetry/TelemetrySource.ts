@@ -8,3 +8,11 @@ export interface TelemetrySource {
   /** Returns an unsubscribe function. */
   subscribe(cb: FrameCallback): () => void;
 }
+
+export interface TelemetrySourceDiagnostics {
+  droppedFrames: number;
+}
+
+export interface TelemetrySourceWithDiagnostics extends TelemetrySource {
+  diagnostics(): TelemetrySourceDiagnostics;
+}
