@@ -16,8 +16,85 @@ use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 // #[allow(dead_code, unused_assignments, unused_variables)]
 
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use image::io::Reader as ImageReader;
+use std::io::Cursor;
+
 const CALLSIGN: &[u8] = &[b'K', b'V', b'0', b'R'];
 const HEADER_LEN: usize = CALLSIGN.len() + 1; // magic + length byte
+
+use crate::middleware::video_streams::VideoFrame;
+
+
+struct FragmentBuffer {
+    fragments: Vec<Option<Vec<u8>>>,
+    total: usize,
+}
+
+impl FragmentBuffer {
+    fn new(total: usize) -> Self {
+        Self {
+            fragments: vec![None; total],
+            total,
+        }
+    }
+
+    fn insert(&mut self, num: usize, data: Vec<u8>) {
+        if num < self.total {
+            self.fragments[num] = Some(data);
+        }
+    }
+
+    fn is_complete(&self) -> bool {
+        self.fragments.iter().all(|f| f.is_some())
+    }
+
+    fn assemble(self) -> Vec<u8> {
+        self.fragments
+            .into_iter()
+            .flat_map(|f| f.unwrap())
+            .collect()
+    }
+}
+
+fn decode_camera_packet(
+    buffer: FragmentBuffer,
+    middleware: &Arc<Mutex<Middleware>>,
+) -> Result<(), String> {
+    let assembled = buffer.assemble();
+
+    // Base64 decode
+    let jpeg_bytes = BASE64
+        .decode(&assembled)
+        .map_err(|e| format!("Base64 decode error: {e}"))?;
+
+    // JPEG decompress
+    let img = ImageReader::new(Cursor::new(jpeg_bytes))
+        .with_guessed_format()
+        .map_err(|e| format!("Image format error: {e}"))?
+        .decode()
+        .map_err(|e| format!("JPEG decode error: {e}"))?;
+
+    // Convert grayscale to RGB
+    let rgb = img.to_rgb8();
+    let (width, height) = rgb.dimensions();
+
+    let frame = Arc::new(VideoFrame {
+        timestamp: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as i64,
+        data: rgb.into_raw(),
+        width,
+        height,
+    });
+
+    tokio::runtime::Handle::current().block_on(async {
+        middleware.lock().await.process_video_frame("payload", frame)
+    })
+}
+
+
 
 // this is cheap to clone and is handed out to remotely control the telemetry radio
 // for sending control commands and choosing the serial port
@@ -74,6 +151,7 @@ pub fn new(middleware: Arc<Mutex<Middleware>>) -> (TelemetryRadio, TelemetryRadi
         payload_control_rx,
         baud_rate: 115200,
         command_sent_count: 0,
+        fragment_buffer: None,
     };
     let payload = TelemetryRadioPayloadControlHandle {
         payload_control_tx,
@@ -90,6 +168,7 @@ pub struct TelemetryRadio {
     payload_control_rx: mpsc::Receiver<(f32, f32)>,
     baud_rate: u32,
     command_sent_count: u16,
+    fragment_buffer: Option<FragmentBuffer>,
 }
 
 impl TelemetryRadio {
@@ -318,13 +397,29 @@ impl TelemetryRadio {
         }
     }
 
-    async fn handle_frame(&self, frame: Vec<u8>) {
+    async fn handle_frame(&mut self, frame: Vec<u8>) {
         tracing::debug!("telem_radio: rx {} bytes", frame.len());
 
         // take off framing header
         let frame_payload = &frame[HEADER_LEN..];
 
         if let Ok(packet) = hprc::root_as_packet(&frame_payload) {
+                let packet_type = packet.packet_type();
+    
+    // Extract camera data before any borrows of self
+    let camera_data = if packet_type == hprc::PacketUnion::CameraPacket {
+        let p = packet.packet_as_camera_packet().unwrap();
+        let fragment_num = p.fragment_num() as usize;
+        let fragment_count = p.fragement_count() as usize;
+        let data = p.data()
+            .map(|d| d.bytes().iter().collect::<Vec<u8>>())
+            .unwrap_or_default();
+        Some((fragment_num, fragment_count, data))
+    } else {
+        None
+    };
+
+    {
             let mut middleware = self.middleware.lock().await;
             match packet.packet_type() {
                 hprc::PacketUnion::Rocket30KTelemetryPacket => self.handle_rocket30_kpacket(
@@ -347,10 +442,40 @@ impl TelemetryRadio {
                     // .unwrap() is safe here bc we've already type matched in the match statement
                     packet.packet_as_payload_telemetry_packet().unwrap(),
                 ),
+                hprc::PacketUnion::CameraPacket => {},
                 _ => (),
             }
         }
+        if let Some((fragment_num, fragment_count, data)) = camera_data {
+        self.handle_camera_packet(fragment_num, fragment_count, data);
     }
+    }
+}
+       
+fn handle_camera_packet(
+    &mut self,
+    fragment_num: usize,
+    fragment_count: usize,
+    data: Vec<u8>,
+) {
+    let buf = self.fragment_buffer.get_or_insert_with(|| FragmentBuffer::new(fragment_count));
+
+    if buf.total != fragment_count {
+        eprintln!("[camera] Fragment count mismatch, dropping frame");
+        self.fragment_buffer = Some(FragmentBuffer::new(fragment_count));
+    }
+
+    if let Some(buf) = &mut self.fragment_buffer {
+        buf.insert(fragment_num, data);
+
+        if buf.is_complete() {
+            let completed = self.fragment_buffer.take().unwrap();
+            if let Err(e) = decode_camera_packet(completed, &self.middleware) {
+                eprintln!("[camera] Failed to decode camera packet: {e}");
+            }
+        }
+    }
+}
 
     fn handle_rocket30_kpacket(
         &self,
