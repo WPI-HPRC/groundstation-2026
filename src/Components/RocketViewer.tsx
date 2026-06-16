@@ -23,12 +23,13 @@ export function RocketViewer({
 }: RocketViewerProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const rocketRef = useRef<THREE.Mesh | null>(null);
-  const attitudeGroupRef = useRef<THREE.Group | null>(null);
+  const rocketGroupRef = useRef<THREE.Group | null>(null);
 
   useEffect(() => {
     if (!mountRef.current) return;
 
     const mount = mountRef.current;
+    mount.replaceChildren();
 
     const scene = new THREE.Scene();
 
@@ -39,9 +40,14 @@ export function RocketViewer({
     directionalLight.position.set(5, 5, 8);
     scene.add(directionalLight);
 
-    const attitudeGroup = new THREE.Group();
-    attitudeGroupRef.current = attitudeGroup;
-    scene.add(attitudeGroup);
+    // Reference frame (rings/axes) stays fixed in world-space.
+    const referenceGroup = new THREE.Group();
+    scene.add(referenceGroup);
+
+    // Rocket group rotates with the incoming quaternion.
+    const rocketGroup = new THREE.Group();
+    rocketGroupRef.current = rocketGroup;
+    scene.add(rocketGroup);
 
     const camera = new THREE.PerspectiveCamera(
       35,
@@ -178,7 +184,7 @@ export function RocketViewer({
     northLabel.renderOrder = 1;
 
     equatorRing.add(northLabel);
-    attitudeGroup.add(equatorRing);
+    referenceGroup.add(equatorRing);
 
     const axisMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
@@ -232,9 +238,9 @@ export function RocketViewer({
       axisWidth
     );
 
-    attitudeGroup.add(xAxis);
-    attitudeGroup.add(yAxis);
-    attitudeGroup.add(zAxis);
+    referenceGroup.add(xAxis);
+    referenceGroup.add(yAxis);
+    referenceGroup.add(zAxis);
 
     const loader = new STLLoader();
 
@@ -264,20 +270,15 @@ export function RocketViewer({
       rocket.scale.setScalar(scale);
       rocket.renderOrder = 1000;
 
-      attitudeGroup.quaternion.set(
-        quaternion.x,
-        quaternion.y,
-        quaternion.z,
-        quaternion.w
-      );
-      attitudeGroup.quaternion.normalize();
+      rocketGroup.quaternion
+        .set(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
+        .normalize();
 
       rocketRef.current = rocket;
-      attitudeGroup.add(rocket);
+      rocketGroup.add(rocket);
     });
 
     const handleResize = () => {
-      console.log("Reszing");
       if (!mountRef.current) return;
 
       const newWidth = mountRef.current.clientWidth;
@@ -285,8 +286,6 @@ export function RocketViewer({
 
       camera.aspect = newWidth / newHeight;
       camera.updateProjectionMatrix();
-
-      console.log(`Setting size to: ${newWidth} x ${newHeight}`);
 
       renderer.setSize(newWidth, newHeight, true);
     };
@@ -298,23 +297,8 @@ export function RocketViewer({
 
     let animationId: number;
 
-    /*
     const animate = () => {
       animationId = requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    };
-    */
-    const animate = () => {
-      animationId = requestAnimationFrame(animate);
-
-      const t = performance.now() * 0.001;
-
-      if (rocketRef.current) {
-        rocketRef.current.rotation.x = 0.8 * Math.sin(t * 0.7);
-        rocketRef.current.rotation.y = t * 0.5;
-        rocketRef.current.rotation.z = 0.4 * Math.cos(t * 1.1);
-      }
-
       renderer.render(scene, camera);
     };
 
@@ -325,7 +309,7 @@ export function RocketViewer({
       resizeObserver.disconnect();
 
       if (rocketRef.current) {
-        attitudeGroup.remove(rocketRef.current);
+        rocketGroup.remove(rocketRef.current);
         rocketRef.current.geometry.dispose();
 
         const material = rocketRef.current.material;
@@ -355,8 +339,9 @@ export function RocketViewer({
       zAxis.geometry.dispose();
       axisMaterial.dispose();
 
-      scene.remove(attitudeGroup);
-      attitudeGroupRef.current = null;
+      scene.remove(referenceGroup);
+      scene.remove(rocketGroup);
+      rocketGroupRef.current = null;
 
       renderer.dispose();
 
@@ -367,7 +352,7 @@ export function RocketViewer({
   }, [modelUrl]);
 
   useEffect(() => {
-    if (!attitudeGroupRef.current) return;
+    if (!rocketGroupRef.current) return;
 
     const q = new THREE.Quaternion(
       quaternion.x,
@@ -376,7 +361,7 @@ export function RocketViewer({
       quaternion.w
     ).normalize();
 
-    attitudeGroupRef.current.quaternion.copy(q);
+    rocketGroupRef.current.quaternion.copy(q);
   }, [quaternion]);
 
   return (
