@@ -1,33 +1,41 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import "./theme.css";
+import { MockTelemetrySource } from "./telemetry/MockTelemetrySource";
+import { useTelemetry } from "./telemetry/useTelemetry";
+import { MOCK_UPDATE_HZ } from "./config";
+import { Sidebar } from "./components/sidebar/Sidebar";
+import { GraphsTab } from "./components/tabs/GraphsTab";
+import { MapTab } from "./components/tabs/MapTab";
 
 type TabKey = "graphs" | "map";
 
 export function RocketDashboardApp() {
   const [tab, setTab] = useState<TabKey>("graphs");
 
+  // The source is created once and lives for the app's lifetime.
+  const source = useMemo(() => new MockTelemetrySource({ updateHz: MOCK_UPDATE_HZ }), []);
+  const snap = useTelemetry(source);
+
   return (
     <div className="dash-root">
-      <aside className="dash-sidebar">
-        <div style={{ fontWeight: 700 }}>SIDEBAR (placeholder)</div>
-      </aside>
+      <Sidebar latest={snap.latest} />
       <main className="dash-main">
         <div className="dash-tabbar">
-          <button
-            className={`dash-tab ${tab === "graphs" ? "active" : ""}`}
-            onClick={() => setTab("graphs")}
-          >
+          <button className={`dash-tab ${tab === "graphs" ? "active" : ""}`} onClick={() => setTab("graphs")}>
             Graphs
           </button>
-          <button
-            className={`dash-tab ${tab === "map" ? "active" : ""}`}
-            onClick={() => setTab("map")}
-          >
+          <button className={`dash-tab ${tab === "map" ? "active" : ""}`} onClick={() => setTab("map")}>
             Map
           </button>
         </div>
         <div className="dash-tab-body">
-          {tab === "graphs" ? "GRAPHS (placeholder)" : "MAP (placeholder)"}
+          {/* Keep BOTH mounted; hide inactive so history + map state survive tab switches. */}
+          <div style={{ height: "100%", display: tab === "graphs" ? "block" : "none" }}>
+            <GraphsTab snap={snap} isActive={tab === "graphs"} />
+          </div>
+          <div style={{ height: "100%", display: tab === "map" ? "block" : "none" }}>
+            <MapTab snap={snap} isActive={tab === "map"} />
+          </div>
         </div>
       </main>
     </div>
