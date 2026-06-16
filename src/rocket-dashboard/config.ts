@@ -2,7 +2,7 @@
 export const LAUNCH_ORIGIN = {
   lat: 31.031080142681898,
   lon: -103.5400953745281,
-  alt: 0, // meters MSL of the launch pad; adjust if known
+  alt: 883.92, // meters MSL of the launch pad; 2900 ft -> m
 } as const;
 
 /** UI render tick rate (Hz). Ingest runs at the source's native rate. */
