@@ -5,13 +5,14 @@
   --fg-color-secondary: #4b5563;
   --accent-color: #af283a;
 
-  --flight-state-prelaunch: #9ca3af;
-  --flight-state-boost: #ef4444;
-  --flight-state-coast: #f59e0b;
-  --flight-state-apogee: #a78bfa;
-  --flight-state-drogue-descent: #38bdf8;
-  --flight-state-main-descent: #22d3ee;
-  --flight-state-landed: #4ade80;
+  /* Pastel flight-state colors (badge backgrounds). */
+  --flight-state-prelaunch: #d1d5db;       /* soft gray */
+  --flight-state-boost: #fecaca;           /* pastel red */
+  --flight-state-coast: #fde68a;           /* pastel amber */
+  --flight-state-apogee: #e9d5ff;          /* pastel purple */
+  --flight-state-drogue-descent: #bae6fd;  /* pastel sky */
+  --flight-state-main-descent: #a7f3d0;    /* pastel teal */
+  --flight-state-landed: #bbf7d0;          /* pastel green */
 
   --series-x: #ff5a5f; /* red */
   --series-y: #4ade80; /* green */
