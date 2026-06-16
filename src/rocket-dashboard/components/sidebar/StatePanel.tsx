@@ -23,7 +23,6 @@ export function StatePanel({ state }: { state: FlightState | null }) {
           padding: "6px 20px",
           border: "1px solid rgba(17, 24, 39, 0.25)",
           fontSize: "clamp(14px, 2.2vw, 20px)",
-          fontWeight: 800,
           background: bg,
           color: fg,
         }}
