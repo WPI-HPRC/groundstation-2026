@@ -1,6 +1,6 @@
 extern crate flatbuffers;
 
-#[allow(dead_code, unused_imports)]
+
 #[path = "../../telemetry-generated/Packet_generated.rs"]
 mod packet_generated;
 pub use packet_generated::hprc;
@@ -14,6 +14,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
+// #[allow(dead_code, unused_assignments, unused_variables)]
 
 const CALLSIGN: &[u8] = &[b'K', b'V', b'0', b'R'];
 const HEADER_LEN: usize = CALLSIGN.len() + 1; // magic + length byte
@@ -24,9 +25,14 @@ const HEADER_LEN: usize = CALLSIGN.len() + 1; // magic + length byte
 pub struct TelemetryRadioHandle {
     pub command_tx: mpsc::Sender<hprc::Command>,
     pub port_tx: mpsc::Sender<String>,
+    pub payload_control_tx: mpsc::Sender<(f32, f32)>
 }
 
 impl TelemetryRadioHandle {
+
+    pub async fn send_command(&self, cmd: hprc::Command) -> Result<(), String> {
+        self.command_tx.send(cmd).await.map_err(|e| e.to_string())
+    }
     // gives us a list of available serial ports
     pub fn available_ports() -> Vec<String> {
         serialport::available_ports()
@@ -36,8 +42,8 @@ impl TelemetryRadioHandle {
             .collect()
     }
 
-    pub async fn send_command(&self, cmd: hprc::Command) -> Result<(), String> {
-        self.command_tx.send(cmd).await.map_err(|e| e.to_string())
+    pub async fn send_payload_control(&self, drive: f32, rotation: f32) -> Result<(), String> {
+        self.payload_control_tx.send((drive, rotation)).await.map_err(|e| e.to_string())
     }
 
     pub async fn send_serial_port(&self, port: String) -> Result<(), String> {
@@ -49,15 +55,18 @@ impl TelemetryRadioHandle {
 
 pub fn new(middleware: Arc<Mutex<Middleware>>) -> (TelemetryRadio, TelemetryRadioHandle) {
     let (command_tx, command_rx) = mpsc::channel::<hprc::Command>(32);
+    let (payload_control_tx, payload_control_rx) = mpsc::channel::<(f32, f32)>(32);
     let (port_tx, port_rx) = mpsc::channel::<String>(32);
     let handle = TelemetryRadioHandle {
         command_tx,
         port_tx,
+        payload_control_tx,
     };
     let radio = TelemetryRadio {
         middleware,
         port_rx,
         command_rx,
+        payload_control_rx,
         baud_rate: 115200,
         command_sent_count: 0,
     };
@@ -70,6 +79,7 @@ pub struct TelemetryRadio {
     middleware: Arc<Mutex<Middleware>>,
     port_rx: mpsc::Receiver<String>,
     command_rx: mpsc::Receiver<hprc::Command>,
+    payload_control_rx: mpsc::Receiver<(f32, f32)>,
     baud_rate: u32,
     command_sent_count: u16,
 }
@@ -233,6 +243,33 @@ impl TelemetryRadio {
                 Some(new_port) = self.port_rx.recv() => {
                     return RunResult::PortChanged(new_port);
                 }
+                Some(payload_control) = self.payload_control_rx.recv() => {
+                    let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(32);
+
+                    // build the command
+                    let (throttle, rotation) = payload_control;
+                    let control_pack = hprc::PayloadControlPacket::create(&mut builder, &hprc::PayloadControlPacketArgs{
+                        throttle: throttle,
+                        rotation: rotation, 
+                    });
+
+                    let command_packet = hprc::Packet::create(&mut builder, &mut hprc::PacketArgs{
+                        packet_type: hprc::PacketUnion::PayloadControlPacket,
+                        packet: Some(control_pack.as_union_value()),
+                    });
+
+                    builder.finish(command_packet, None);
+
+                    // add framing
+                    let mut send_buffer: Vec<u8> = Vec::new();
+                    send_buffer.extend_from_slice(CALLSIGN); // magic header/callsign
+                    send_buffer.push(builder.finished_data().len() as u8); // length
+                    send_buffer.extend_from_slice(builder.finished_data());
+
+                    if write_tx.send(send_buffer).is_err() {
+                        return RunResult::Error("writer thread died".into());
+                    }
+                }
                 Some(cmd) = self.command_rx.recv() => {
                     let mut builder = flatbuffers::FlatBufferBuilder::with_capacity(32);
 
@@ -326,6 +363,18 @@ impl TelemetryRadio {
         };
         if let Some(ekf) = packet.ekf_values() {
             self.handle_ekf(middleware, ekf, "rocket".to_string());
+        };
+
+        if let Some(covariance) = packet.covariance_diagonal() {
+            let mut covariance_index = 0;
+            for val in covariance {
+                let _ = middleware.push_data(
+                    "rocket",
+                    &format!("covariance_diagonal{}",covariance_index).to_string(), 
+                    TelemetryData::new().with_value(val as f64),
+                );
+                covariance_index +=1;
+            };
         };
     }
 
@@ -426,9 +475,17 @@ impl TelemetryRadio {
             );
         }
 
-        // if let Some(covariance) = packet.covariance_diagonal() {
-            // idk lol
-        // }
+        if let Some(covariance) = packet.covariance_diagonal() {
+            let mut covariance_index = 0;
+            for val in covariance {
+                let _ = middleware.push_data(
+                    "rocket",
+                    &format!("covariance {}",covariance_index).to_string(), 
+                    TelemetryData::new().with_value(val as f64),
+                );
+                covariance_index +=1;
+            };
+        };
     }
 
     fn handle_payload_packet(
@@ -463,37 +520,37 @@ impl TelemetryRadio {
     ) {
         let _ = middleware.push_data(
             &name,
-            "timestamp",
+            "time_from_boot",
             TelemetryData::new().with_value(shared.time_from_boot()),
         );
         let _ = middleware.push_data(
             &name,
-            "loop count",
+            "loop_count",
             TelemetryData::new().with_value(shared.loop_count()),
         );
         let _ = middleware.push_data(
             &name,
-            "sd file no",
+            "sd_file_no",
             TelemetryData::new().with_value(shared.sd_file_no() as i32),
         );
         let _ = middleware.push_data(
             &name,
-            "battery voltage",
+            "battery_voltage",
             TelemetryData::new().with_value(shared.battery_voltage() as f64),
         );
         let _ = middleware.push_data(
             &name,
-            "mosfet current",
+            "mosfet_current",
             TelemetryData::new().with_value(shared.mosfet_current() as f64),
         );
         let _ = middleware.push_data(
             &name,
-            "mosfet state",
+            "mosfet_state",
             TelemetryData::new().with_value(shared.mosfet_state()),
         );
         let _ = middleware.push_data(
             &name,
-            "last command received",
+            "last_command_received",
             TelemetryData::new().with_value(shared.last_command_received() as u32),
         );
     }
@@ -507,32 +564,32 @@ impl TelemetryRadio {
         if let Some(asm330_data) = sensors.asm330() {
             let _ = middleware.push_data(
                 &name,
-                "asm330 acc x",
+                "asm330_accel0",
                 TelemetryData::new().with_value(asm330_data.accel0() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "asm330 acc y",
+                "asm330_accel1",
                 TelemetryData::new().with_value(asm330_data.accel1() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "asm330 acc z",
+                "asm330_accel2",
                 TelemetryData::new().with_value(asm330_data.accel2() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "asm330 gyro x",
+                "asm330_gyr0",
                 TelemetryData::new().with_value(asm330_data.gyr0() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "asm330 gyro y",
+                "asm330_gyr1",
                 TelemetryData::new().with_value(asm330_data.gyr1() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "asm330 gyro z",
+                "asm330_gyr2",
                 TelemetryData::new().with_value(asm330_data.gyr2() as f64),
             );
         }
@@ -540,32 +597,32 @@ impl TelemetryRadio {
         if let Some(lsm6_data) = sensors.lsm6() {
             let _ = middleware.push_data(
                 &name,
-                "lsm6 acc x",
+                "lsm6_accel0",
                 TelemetryData::new().with_value(lsm6_data.accel0() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "lsm6 acc y",
+                "lsm6_accel1",
                 TelemetryData::new().with_value(lsm6_data.accel1() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "lsm6 acc z",
+                "lsm6_accel2",
                 TelemetryData::new().with_value(lsm6_data.accel2() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "lsm6 gyro x",
+                "lsm6_gyr0",
                 TelemetryData::new().with_value(lsm6_data.gyr0() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "lsm6 gyro y",
+                "lsm6_gyr1",
                 TelemetryData::new().with_value(lsm6_data.gyr1() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "lsm6 gyro z",
+                "lsm6_gyr2",
                 TelemetryData::new().with_value(lsm6_data.gyr2() as f64),
             );
         }
@@ -573,17 +630,17 @@ impl TelemetryRadio {
         if let Some(lis2mdl_data) = sensors.lis2mdl() {
             let _ = middleware.push_data(
                 &name,
-                "mag x",
+                "mag0",
                 TelemetryData::new().with_value(lis2mdl_data.mag0() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "mag y",
+                "mag1",
                 TelemetryData::new().with_value(lis2mdl_data.mag1() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "mag z",
+                "mag2",
                 TelemetryData::new().with_value(lis2mdl_data.mag2() as f64),
             );
         }
@@ -596,7 +653,7 @@ impl TelemetryRadio {
             );
             let _ = middleware.push_data(
                 &name,
-                "temperature",
+                "temp",
                 TelemetryData::new().with_value(lps22_data.temp() as f64),
             );
         }
@@ -604,7 +661,7 @@ impl TelemetryRadio {
         if let Some(liv3f_data) = sensors.liv3f() {
             let _ = middleware.push_data(
                 &name,
-                "gps lock",
+                "gps_lock",
                 TelemetryData::new().with_value(liv3f_data.satellites() >= 3),
             );
             let _ = middleware.push_data(
@@ -614,22 +671,22 @@ impl TelemetryRadio {
             );
             let _ = middleware.push_data(
                 &name,
-                "latitude",
+                "lat",
                 TelemetryData::new().with_value(liv3f_data.lat() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "longitude",
+                "lon",
                 TelemetryData::new().with_value(liv3f_data.lon() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "gps altitude",
+                "alt",
                 TelemetryData::new().with_value(liv3f_data.alt() as f64),
             );
             let _ = middleware.push_data(
                 &name,
-                "gps epoch time",
+                "epoch_time",
                 TelemetryData::new().with_value(liv3f_data.epoch_time()),
             );
         }
@@ -647,32 +704,32 @@ impl TelemetryRadio {
         let _ = middleware.push_data(&name, "k", TelemetryData::new().with_value(ekf.k() as f64));
         let _ = middleware.push_data(
             &name,
-            "pos x",
+            "pos_x",
             TelemetryData::new().with_value(ekf.pos_x() as f64),
         );
         let _ = middleware.push_data(
             &name,
-            "pos y",
+            "pos_y",
             TelemetryData::new().with_value(ekf.pos_y() as f64),
         );
         let _ = middleware.push_data(
             &name,
-            "pos z",
+            "pos_z",
             TelemetryData::new().with_value(ekf.pos_z() as f64),
         );
         let _ = middleware.push_data(
             &name,
-            "vel x",
+            "vel_x",
             TelemetryData::new().with_value(ekf.vel_x() as f64),
         );
         let _ = middleware.push_data(
             &name,
-            "vel y",
+            "vel_y",
             TelemetryData::new().with_value(ekf.vel_y() as f64),
         );
         let _ = middleware.push_data(
             &name,
-            "vel z",
+            "vel_z",
             TelemetryData::new().with_value(ekf.vel_z() as f64),
         );
     }
