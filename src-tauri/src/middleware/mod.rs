@@ -94,7 +94,7 @@ impl Middleware {
         if !self.telemetry.has_store(store_name) {
             self.create_new_store(store_name)?;
         }
-        println!("{} {} {:#?}", store_name, field, data); // holy prints
+        // println!("{} {} {:#?}", store_name, field, data); // holy prints
         self.telemetry.push(store_name, field, data)
         
     }

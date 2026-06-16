@@ -25,7 +25,17 @@ const HEADER_LEN: usize = CALLSIGN.len() + 1; // magic + length byte
 pub struct TelemetryRadioHandle {
     pub command_tx: mpsc::Sender<hprc::Command>,
     pub port_tx: mpsc::Sender<String>,
-    pub payload_control_tx: mpsc::Sender<(f32, f32)>
+}
+
+#[derive(Clone)]
+pub struct TelemetryRadioPayloadControlHandle {
+    pub payload_control_tx: mpsc::Sender<(f32, f32)> // throttle, rotation
+}
+
+impl TelemetryRadioPayloadControlHandle {
+    pub async fn send_payload_control(&self, drive: f32, rotation: f32) -> Result<(), String> {
+        self.payload_control_tx.try_send((drive, rotation)).map_err(|e| e.to_string())
+    }
 }
 
 impl TelemetryRadioHandle {
@@ -42,10 +52,6 @@ impl TelemetryRadioHandle {
             .collect()
     }
 
-    pub async fn send_payload_control(&self, drive: f32, rotation: f32) -> Result<(), String> {
-        self.payload_control_tx.send((drive, rotation)).await.map_err(|e| e.to_string())
-    }
-
     pub async fn send_serial_port(&self, port: String) -> Result<(), String> {
         self.port_tx.send(port).await.map_err(|e| e.to_string())
     }
@@ -53,14 +59,13 @@ impl TelemetryRadioHandle {
 
 // ── Constructor ───────────────────────────────────────────────────────────────
 
-pub fn new(middleware: Arc<Mutex<Middleware>>) -> (TelemetryRadio, TelemetryRadioHandle) {
+pub fn new(middleware: Arc<Mutex<Middleware>>) -> (TelemetryRadio, TelemetryRadioHandle, TelemetryRadioPayloadControlHandle) {
     let (command_tx, command_rx) = mpsc::channel::<hprc::Command>(32);
     let (payload_control_tx, payload_control_rx) = mpsc::channel::<(f32, f32)>(32);
     let (port_tx, port_rx) = mpsc::channel::<String>(32);
     let handle = TelemetryRadioHandle {
         command_tx,
         port_tx,
-        payload_control_tx,
     };
     let radio = TelemetryRadio {
         middleware,
@@ -70,7 +75,10 @@ pub fn new(middleware: Arc<Mutex<Middleware>>) -> (TelemetryRadio, TelemetryRadi
         baud_rate: 115200,
         command_sent_count: 0,
     };
-    (radio, handle)
+    let payload = TelemetryRadioPayloadControlHandle {
+        payload_control_tx,
+    };
+    (radio, handle, payload)
 }
 
 // ── Actor (Thread) ─────────────────────────────────────────────────────────────────────

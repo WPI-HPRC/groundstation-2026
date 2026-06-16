@@ -27,6 +27,7 @@ use crate::backend::{
     telemetry_radio_interface,
     // tracker_interface,
     video_capture_interface,
+    joystick_input,
 };
 
 // commands for tauri to call from frontend
@@ -87,12 +88,13 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     // });
 
     let telem_shutdown_rx = shutdown_rx.clone();
-    let (telem_radio, telem_radio_handle) 
+    let (telem_radio, telem_radio_handle, telem_payload_control_handle) 
         = telemetry_radio_interface::new(middleware.clone());
     tauri::async_runtime::spawn(async move {
         telem_radio.run(telem_shutdown_rx).await;
     });
     app_handle.manage(telem_radio_handle);
+    
 
     let live_video_shutdown = shutdown_rx.clone();
     let (live_video_cam, live_video_cam_handle) = video_capture_interface::new("live_vide", middleware.clone());
@@ -116,18 +118,17 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     //     telem_radio2.run(telem_shutdown_rx2).await;
     // });
 
+    let joystick_shutdown = shutdown_rx.clone();
+    let (joystick, joystick_handle) = joystick_input::new(
+        telem_payload_control_handle.clone(),
+        middleware.clone(),
+    );
+    tauri::async_runtime::spawn(async move {
+        joystick.run(joystick_shutdown).await;
+    });
+    app_handle.manage(joystick_handle);
     
 
-
-    // let video_capture_onboard = video_capture_interface::new(middleware.clone());
-    // tauri::async_runtime::spawn(async move {
-    //     video_capture_onboard.run(shutdown_rx.clone()).await;
-    // });
-
-    // let video_capture_ground = video_capture_interface::new(middleware.clone());
-    // tauri::async_runtime::spawn(async move {
-    //     video_capture_ground.run(shutdown_rx.clone()).await;
-    // });
 
     // let tracker_interface = tracker_interface::new(middleware.clone());
     // tauri::async_runtime::spawn(async move {
