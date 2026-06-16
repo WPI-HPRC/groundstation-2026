@@ -24,7 +24,8 @@ const DEFAULT_TIME_SCALE = 3.5;
 const APOGEE_ALT_M = 7600; // ~24,900 ft
 const BURNOUT_ALT_M = 780;
 const MAIN_DEPLOY_ALT_M = 550;
-const MAX_ASCENT_VEL_MPS = 475; // ~1060 mph
+const MAX_ASCENT_VEL_MPS = 1700 / 3.28084; // 1700 ft/s
+const MAX_G_MPS2 = 9.80665 * 1.7;
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(Math.max(n, min), max);
@@ -155,7 +156,11 @@ export class MockTelemetrySource implements TelemetrySource {
       const shaped = smoothstep(u);
       velocity = MAX_ASCENT_VEL_MPS * shaped + noise(t, 3, 0.4);
       altitude = BURNOUT_ALT_M * u * u * (0.65 + 0.35 * shaped);
-      acceleration = lerp(35, 115, Math.sin(clamp(u, 0, 1) * Math.PI)) + noise(t, 6, 0.8);
+      acceleration = clamp(
+        9.80665 * lerp(1.15, 1.7, Math.sin(clamp(u, 0, 1) * Math.PI)) + noise(t, 0.18, 0.8),
+        9.80665,
+        MAX_G_MPS2
+      );
     } else if (state === FlightState.Coast) {
       const u = (t - 9) / 25;
       velocity = Math.max(0, MAX_ASCENT_VEL_MPS * (1 - smoothstep(u)) + noise(t, 1.8, 1.1));

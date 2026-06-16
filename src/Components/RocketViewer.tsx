@@ -17,6 +17,9 @@ type RocketViewerProps = {
   height?: number | string;
 };
 
+const MODEL_NOSE_AXIS = new THREE.Vector3(0, 1, 0);
+const BODY_UP_AXIS = new THREE.Vector3(0, 0, 1);
+
 export function RocketViewer({
   quaternion,
   modelUrl = "../models/HPRC_rocket.stl",
@@ -269,6 +272,7 @@ export function RocketViewer({
 
       rocket.scale.setScalar(scale);
       rocket.renderOrder = 1000;
+      rocket.quaternion.setFromUnitVectors(MODEL_NOSE_AXIS, BODY_UP_AXIS);
 
       rocketGroup.quaternion
         .set(quaternion.x, quaternion.y, quaternion.z, quaternion.w)

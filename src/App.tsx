@@ -11,7 +11,7 @@ import { FlightState, useTelemetry } from "./rocket-dashboard/telemetry/useTelem
 import type { TelemetryFrame } from "./rocket-dashboard/telemetry/types";
 
 const M_TO_FT = 3.28084;
-const MPS_TO_MPH = 2.23694;
+const MPS_TO_FPS = 3.28084;
 const G_MPS2 = 9.80665;
 const ALTITUDE_MAX_FT = 30000;
 const TRAJECTORY_POINT_LIMIT = 2000;
@@ -65,13 +65,16 @@ function App() {
   }, [latest]);
 
   const altitudeFt = Math.max(0, latest?.altitude ?? 0) * M_TO_FT;
-  const speedMph = Math.max(0, latest?.velocity ?? 0) * MPS_TO_MPH;
+  const speedFtS = Math.max(0, latest?.velocity ?? 0) * MPS_TO_FPS;
   const gForce = Math.max(0, latest?.acceleration ?? 0) / G_MPS2;
   const q = latest?.orientation ?? { w: 1, i: 0, j: 0, k: 0 };
 
   return (
     <main className="container">
       <div className="video-layer" aria-hidden="true" />
+      <div className="callsign-badge" aria-label="Rocket HAM radio call sign">
+        KV0R
+      </div>
       <ProgressBar
         title="Altitude (AGL)"
         secondary="UNOFFICIAL"
@@ -86,7 +89,8 @@ function App() {
 
       <div className="container-secondary" id="gauges-container">
         <MaxStats
-          data={{ speed: speedMph, altitude: altitudeFt, gForce }}
+          data={{ speed: speedFtS, altitude: altitudeFt, gForce }}
+          speedUnits="ft/s"
           resetKey={trajectoryState.flightSession}
         ></MaxStats>
         <RocketViewer quaternion={{ x: q.i, y: q.j, z: q.k, w: q.w }}></RocketViewer>
@@ -97,16 +101,16 @@ function App() {
           </div>
         </div>
         <ArcGauge
-          value={Math.round(speedMph)}
+          value={Math.round(speedFtS)}
           min={0}
-          max={700}
-          units="MPH"
+          max={1700}
+          units="FT/S"
           label="SPEED"
         />
         <ArcGauge
           value={Number(gForce.toFixed(1))}
           min={0}
-          max={18}
+          max={2}
           units="&nbsp;"
           label="G-FORCE"
         />

@@ -16,4 +16,4 @@ export const CHART_WINDOW = 600;
 
 /** Velocity dial range (m/s). */
 export const VELOCITY_MIN = 0;
-export const VELOCITY_MAX = 400;
+export const VELOCITY_MAX = 550;
