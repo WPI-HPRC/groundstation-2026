@@ -8,19 +8,21 @@ const DEMO_ORIGIN = { lat: 31.031080142681898, lon: -103.5400953745281, alt: 0 }
 function useSamplePath(): LocalPoint[] {
   const [pts, setPts] = useState<LocalPoint[]>([]);
   useEffect(() => {
+    // A clean lofted arc: flies ~2.4 km downrange (East), drifts slightly
+    // North, peaks at ~800 m apogee (z = 80t - 2t²), and lands near t = 40.
     let t = 0;
     const id = setInterval(() => {
       t += 0.1;
       setPts((prev) => {
-        const next = prev.slice(-600);
+        const next = prev.slice(-800);
         next.push({
-          x: t * 4 + Math.sin(t) * 20,
-          y: t * 2.5 + Math.cos(t) * 20,
-          z: Math.max(0, 300 * t - 2 * t * t),
+          x: 60 * t,
+          y: 8 * t,
+          z: Math.max(0, 80 * t - 2 * t * t),
         });
         return next;
       });
-      if (t > 60) clearInterval(id);
+      if (t > 40) clearInterval(id);
     }, 50);
     return () => clearInterval(id);
   }, []);
@@ -31,7 +33,13 @@ function Demo() {
   const points = useSamplePath();
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      <FlightMap3D trajectory={{ mode: "enu", points, origin: DEMO_ORIGIN }} follow />
+      <FlightMap3D
+        trajectory={{ mode: "enu", points, origin: DEMO_ORIGIN }}
+        follow
+        rasterTilesUrl="/tiles/{z}/{x}/{y}.jpg"
+        rasterMaxZoom={16}
+        rasterAttribution="Imagery © Esri, Maxar, Earthstar Geographics"
+      />
     </div>
   );
 }
