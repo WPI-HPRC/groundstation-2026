@@ -45,3 +45,20 @@
 .trajectory-viewer-canvas canvas {
     display: block;
 }
+
+@media (max-width: 760px) {
+    .trajectory-viewer-card {
+        right: 3%;
+        width: clamp(150px, 43vw, 230px);
+        height: clamp(150px, 30cqh, 260px);
+    }
+
+    .trajectory-viewer-canvas {
+        border-radius: 16px;
+    }
+
+    .trajectory-viewer-canvas::after {
+        bottom: 12px;
+        font-size: clamp(9px, 3cqw, 13px);
+    }
+}

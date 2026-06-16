@@ -94,3 +94,23 @@
     font-size: clamp(10px, 8cqw, 13px);
     white-space: nowrap;
 }
+
+@media (max-width: 760px) {
+    .ProgressBar {
+        left: 3%;
+        width: clamp(132px, 42vw, 210px);
+        height: min(68cqh, calc(100cqh - var(--gauges-height) - var(--overlay-gauge-gap) - 5cqh));
+        padding: 10px 12px;
+        border-radius: 16px;
+        --bar-start-x: 26%;
+    }
+
+    #progress-bar-title {
+        font-size: clamp(15px, 10cqw, 22px);
+    }
+
+    #progress-bar-secondary,
+    .progress-ticks-container > p {
+        font-size: clamp(10px, 7cqw, 14px);
+    }
+}

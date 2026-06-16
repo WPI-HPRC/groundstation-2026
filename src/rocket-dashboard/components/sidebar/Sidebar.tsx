@@ -38,21 +38,7 @@ export function Sidebar({
       </div>
       <StatePanel state={latest?.state ?? null} />
       <FlagToggles />
-      <div
-        style={{
-          background: "rgba(208, 28, 52, 0.49)", // var(--accent-color) with 15% opacity
-     
-          border: "1px solid var(--accent-color)",
-     
-          borderRadius: 12,
-          padding: 10,
-          display: "grid",
-          gridTemplateRows: "1fr 1fr",
-          gap: 10,
-          width: "100%",
-          height: "100%"
-        }}
-      >
+      <div className="dash-attitude-card">
         <div style={{ width: "100%", height: "100%" }}>
           <RocketViewer quaternion={{ x: q.i, y: q.j, z: q.k, w: q.w }} />
         </div>

@@ -19,6 +19,7 @@ export function GraphsTab({ snap }: { snap: TelemetrySnapshot; isActive?: boolea
   const { t, timeMode } = snap.history;
   const chartProps = { t, timeMode };
   return (    <div
+      className="dash-graphs-stack"
       style={{
         height: "100%",
         overflowY: "auto",
@@ -28,10 +29,10 @@ export function GraphsTab({ snap }: { snap: TelemetrySnapshot; isActive?: boolea
         padding: 8,
       }}
     >
-      <div style={{ flex: "1 1 0", minHeight: 130 }}>
+      <div className="dash-chart-panel" style={{ flex: "1 1 0", minHeight: 130 }}>
         <TimeSeriesChart title="Gyroscope" {...chartProps} series={snap.history.gyro} defs={xyzDefs} yLabel="deg/s" />
       </div>
-      <div style={{ flex: "1 1 0", minHeight: 130 }}>
+      <div className="dash-chart-panel" style={{ flex: "1 1 0", minHeight: 130 }}>
         <TimeSeriesChart
           title="Accelerometer"
           {...chartProps}
@@ -39,10 +40,10 @@ export function GraphsTab({ snap }: { snap: TelemetrySnapshot; isActive?: boolea
           defs={xyzDefs}
           yLabel="m/s²"
         />      </div>
-      <div style={{ flex: "1 1 0", minHeight: 130 }}>
+      <div className="dash-chart-panel" style={{ flex: "1 1 0", minHeight: 130 }}>
         <TimeSeriesChart title="Magnetometer" {...chartProps} series={snap.history.mag} defs={xyzDefs} yLabel="µT" />
       </div>
-      <div style={{ flex: "1 1 0", minHeight: 130 }}>
+      <div className="dash-chart-panel" style={{ flex: "1 1 0", minHeight: 130 }}>
         <TimeSeriesChart
           title="Altitude (barometer)"
           {...chartProps}
@@ -50,7 +51,7 @@ export function GraphsTab({ snap }: { snap: TelemetrySnapshot; isActive?: boolea
           defs={ALT_DEFS}
           yLabel="m"
         />      </div>
-      <div style={{ flex: "1 1 0", minHeight: 130 }}>
+      <div className="dash-chart-panel" style={{ flex: "1 1 0", minHeight: 130 }}>
         <TimeSeriesChart
           title="Temperature"
           {...chartProps}

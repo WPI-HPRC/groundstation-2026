@@ -301,3 +301,41 @@ body {
     z-index: 1;
     pointer-events: auto;
 }
+
+@media (max-width: 760px) {
+  .container {
+    --gauges-height: 18cqh;
+    --overlay-gauge-gap: 2cqh;
+  }
+
+  .video-layer {
+    background-size: cover;
+  }
+
+  #gauges-container {
+    grid-template-columns: 26% 17% 18% 19.5% 19.5%;
+    height: var(--gauges-height);
+    padding-top: 8px;
+  }
+
+  #title-primary {
+    font-size: clamp(13px, 4.5cqw, 22px);
+    padding-top: 0;
+  }
+
+  #logo-img {
+    width: 40%;
+    min-width: 22px;
+  }
+}
+
+@media (max-width: 760px) and (orientation: portrait) {
+  .container {
+    --gauges-height: 17cqh;
+    --overlay-gauge-gap: 1.5cqh;
+  }
+
+  #gauges-container {
+    grid-template-columns: 27% 16% 17% 20% 20%;
+  }
+}

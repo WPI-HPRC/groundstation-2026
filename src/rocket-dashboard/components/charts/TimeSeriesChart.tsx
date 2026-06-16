@@ -22,7 +22,8 @@ export function TimeSeriesChart({
   defs,
   yLabel,
   timeMode = "wall",
-}: TimeSeriesChartProps) {  const containerRef = useRef<HTMLDivElement | null>(null);
+}: TimeSeriesChartProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const plotRef = useRef<uPlot | null>(null);
   const defsKey = defs.map((d) => `${d.label}:${d.color}`).join("|");
 
@@ -36,6 +37,15 @@ export function TimeSeriesChart({
     // Prevent the uPlot legend from affecting surrounding layout.
     el.style.position = "relative";
     el.style.overflow = "hidden";
+
+    const updateDensityClass = () => {
+      const compact = el.clientWidth < 560;
+      const stacked = el.clientWidth < 430;
+      el.classList.toggle("ts-chart-compact", compact);
+      el.classList.toggle("ts-chart-stacked-legend", stacked);
+    };
+
+    updateDensityClass();
 
     const plot = new uPlot(
       {
@@ -86,6 +96,7 @@ export function TimeSeriesChart({
     const ro = new ResizeObserver(() => {
       const nextW = el.clientWidth || 600;
       const nextH = el.clientHeight || 240;
+      updateDensityClass();
       plot.setSize({ width: nextW, height: nextH });
     });
 
@@ -104,6 +115,7 @@ export function TimeSeriesChart({
   return (
     <div
       ref={containerRef}
+      className="ts-chart"
       style={{ width: "100%", height: "100%", minHeight: 120 }}
     />
   );
