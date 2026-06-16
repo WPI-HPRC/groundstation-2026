@@ -35,6 +35,7 @@ export default defineConfig(async () => ({
       input: {
         main: resolve(__dirname, "index.html"),
         "rocket-dashboard": resolve(__dirname, "rocket-dashboard.html"),
+        trajectory: resolve(__dirname, "trajectory.html"),
       },
     },
   },
