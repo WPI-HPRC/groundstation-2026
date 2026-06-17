@@ -241,7 +241,7 @@ pub async fn spoof_rocket_telemetry_once(
     push_spoof_data(&mut middleware, timestamp, "state", 2_u32)?;
     push_spoof_data(&mut middleware, timestamp, "battery_voltage", 12.4_f64)?;
     push_spoof_data(&mut middleware, timestamp, "temp", 24.5_f64)?;
-    push_spoof_data(&mut middleware, timestamp, "pressure", 900.0_f64)?;
+    push_spoof_data(&mut middleware, timestamp, "pressure", 913.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "asm330_gyr0", 1.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "asm330_gyr1", 2.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "asm330_gyr2", 3.0_f64)?;
@@ -257,7 +257,7 @@ pub async fn spoof_rocket_telemetry_once(
     push_spoof_data(&mut middleware, timestamp, "k", 0.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "vel_x", 0.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "vel_y", 0.0_f64)?;
-    push_spoof_data(&mut middleware, timestamp, "vel_z", 100.0_f64)?;
+    push_spoof_data(&mut middleware, timestamp, "vel_z", 0.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "pos_x", 1.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "pos_y", 2.0_f64)?;
     push_spoof_data(&mut middleware, timestamp, "pos_z", 500.0_f64)?;

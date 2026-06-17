@@ -112,7 +112,8 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     app_handle.manage(joystick_handle);
 
     // Mock telemetry — opt-in via env var so the real radio path is untouched by default.
-    if std::env::var("HPRC_MOCK_TELEM").as_deref() == Ok("1") {
+    //if std::env::var("HPRC_MOCK_TELEM").as_deref() == Ok("1") {
+    if true {
         let mock_shutdown = shutdown_rx.clone();
         let mock = mock_telemetry::new(middleware.clone());
         tauri::async_runtime::spawn(async move {

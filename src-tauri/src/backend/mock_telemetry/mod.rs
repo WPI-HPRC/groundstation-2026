@@ -14,6 +14,7 @@ const PROFILE_END: f64 = 185.0;
 const UPDATE_HZ: f64 = 20.0;
 
 const SEA_LEVEL_HPA: f64 = 1013.25;
+const LAUNCH_PAD_ALT_M: f64 = 883.92;
 const APOGEE_ALT_M: f64 = 7600.0;
 const BURNOUT_ALT_M: f64 = 780.0;
 const MAIN_DEPLOY_ALT_M: f64 = 550.0;
@@ -217,6 +218,22 @@ pub fn build_frame(t: f64) -> MockFrame {
         10.8,
         12.7,
     );
+    let noisy_launch_pressure = altitude_to_pressure_hpa(LAUNCH_PAD_ALT_M) + noise(t, 2.0, 6.0);
+    let noisy_quat = quat_from_euler(
+        t * 1.7 + noise(t, 1.3, 6.7),
+        t * 1.1 + noise(t, 1.2, 7.3),
+        t * 2.3 + noise(t, 1.5, 7.9),
+    );
+    let noisy_vel = [
+        noise(t, 1.5, 8.5),
+        noise(t, 1.5, 9.1),
+        noise(t, 0.8, 9.7),
+    ];
+    let noisy_pos = [
+        noise(t, 8.0, 10.3),
+        noise(t, 8.0, 10.9),
+        noise(t, 3.0, 11.5).max(0.0),
+    ];
 
     // payload extras: slow joystick sweep, a moving horizon, a few drifting blobs.
     let joystick_x = (t * 0.6).sin() * 0.7;
@@ -244,13 +261,13 @@ pub fn build_frame(t: f64) -> MockFrame {
         state_index: state,
         voltage,
         temp: 30.0 - altitude * 0.0065 + noise(t, 0.35, 2.9),
-        pressure: altitude_to_pressure_hpa(altitude),
+        pressure: noisy_launch_pressure,
         accel,
         gyro,
         mag,
-        quat: orientation_at(t, state),
-        vel: [0.0, 0.0, velocity], // mostly-vertical; frontend velocity = hypot
-        pos: [east, north, altitude],
+        quat: noisy_quat,
+        vel: noisy_vel,
+        pos: noisy_pos,
         joystick_x,
         joystick_y,
         horiz,

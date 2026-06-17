@@ -59,7 +59,7 @@ export function useMainGuiTelemetry() {
   }, [latest]);
 
   const altitudeFt = Math.max(0, latest?.altitude ?? 0) * M_TO_FT;
-  const speedFtS = Math.max(0, latest?.velocity ?? 0) * MPS_TO_FPS;
+  const speedFtS = 0; //Math.max(0, latest?.velocity ?? 0) * MPS_TO_FPS;
   const gForce = Math.max(0, latest?.acceleration ?? 0) / G_MPS2;
   const q = latest?.orientation ?? { w: 1, i: 0, j: 0, k: 0 };
 

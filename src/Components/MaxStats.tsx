@@ -62,7 +62,7 @@ export function MaxStats({
       <div className="max-stats-row">
         <span className="max-stats-label">Max Speed</span>
         <span className="max-stats-value">
-          {maxSpeed.toFixed(0)}
+          0
           <span className="max-stats-units">{speedUnits}</span>
         </span>
       </div>
