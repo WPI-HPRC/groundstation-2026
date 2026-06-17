@@ -10,6 +10,7 @@ import { MainVideoCanvas } from "./Components/MainVideoCanvas";
 import { createTelemetrySource } from "./rocket-dashboard/telemetry/createTelemetrySource";
 import { FlightState, useTelemetry } from "./rocket-dashboard/telemetry/useTelemetry";
 import type { TelemetryFrame } from "./rocket-dashboard/telemetry/types";
+import SplitView from "./Components/SplitView";
 
 const M_TO_FT = 3.28084;
 const MPS_TO_FPS = 3.28084;
@@ -84,7 +85,7 @@ function App() {
       ></ProgressBar>
       <TrajectoryViewer points={trajectoryState.points}></TrajectoryViewer>
 
-      {/* <LiveVideo></LiveVideo> */}
+      <SplitView></SplitView>
 
       <div className="container-secondary" id="gauges-container">
         <MaxStats
