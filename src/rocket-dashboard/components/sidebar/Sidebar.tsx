@@ -1,6 +1,6 @@
 import type { TelemetryFrame } from "../../telemetry/types";
 import { VELOCITY_MAX, VELOCITY_MIN } from "../../config";
-import { PortSelector } from "./PortSelector";
+import { PortConfigPanel } from "./PortConfigPanel";
 import { StatePanel } from "./StatePanel";
 import { FlagToggles } from "./FlagToggles";
 import { VoltageReadout } from "./VoltageReadout";
@@ -21,8 +21,8 @@ export function Sidebar({
 
   return (
     <aside className="dash-sidebar">
-      {/* COM-port selector sits ABOVE the state panel (per wireframe). */}
-      <PortSelector />
+      {/* Per-interface port configuration. */}
+      <PortConfigPanel />
       <div
         style={{
           border: "1px solid var(--bg-color-secondary)",
