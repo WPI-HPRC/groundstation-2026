@@ -52,6 +52,7 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
   private readonly subs = new Set<FrameCallback>();
   private lastFrame: TelemetryFrame | null = null;
   private droppedFrames = 0;
+  private pollInFlight = false;
 
   constructor({ updateHz = 20 }: { updateHz?: number } = {}) {
     this.updateMs = Math.max(MIN_POLL_MS, Math.round(1000 / updateHz));
@@ -64,7 +65,15 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
 
   start(): void {
     if (this.timer != null) return;
-    this.timer = window.setInterval(() => void this.pollOnce(), this.updateMs);
+    this.timer = window.setInterval(() => this.schedulePoll(), this.updateMs);
+    this.schedulePoll();
+  }
+
+  private schedulePoll(): void {
+    if (this.pollInFlight) {
+      this.droppedFrames++;
+      return;
+    }
     void this.pollOnce();
   }
 
@@ -83,6 +92,16 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
   }
 
   private async pollOnce(): Promise<void> {
+    if (this.pollInFlight) return;
+    this.pollInFlight = true;
+    try {
+      await this.pollOnceInner();
+    } finally {
+      this.pollInFlight = false;
+    }
+  }
+
+  private async pollOnceInner(): Promise<void> {
     // Fetch all required fields in parallel.
     const [
       st,
@@ -270,8 +289,14 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
 
     const acceleration = Math.hypot(accel.x, accel.y, accel.z);
 
+    const frameTimestamp = ts ?? this.lastFrame!.timestamp;
+    if (this.lastFrame && ts != null && ts < this.lastFrame.timestamp) {
+      this.droppedFrames++;
+      return;
+    }
+
     const frame: TelemetryFrame = {
-      timestamp: ts ?? this.lastFrame!.timestamp,
+      timestamp: frameTimestamp,
       state: stateN ?? this.lastFrame!.state,
       orientation,
       velocity,

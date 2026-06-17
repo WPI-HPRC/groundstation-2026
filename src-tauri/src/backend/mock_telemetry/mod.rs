@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio::time::{interval, Duration};
+use tokio::time::{interval, Duration, MissedTickBehavior};
 use tokio_util::sync::CancellationToken;
 
 use crate::middleware::telemetry_stores::TelemetryData;
@@ -19,6 +19,15 @@ const BURNOUT_ALT_M: f64 = 780.0;
 const MAIN_DEPLOY_ALT_M: f64 = 550.0;
 const MAX_ASCENT_VEL_MPS: f64 = 1700.0 / 3.28084;
 const MAX_G_MPS2: f64 = 9.80665 * 1.7;
+
+const BLOB_X: [&str; 3] = ["blob_x0", "blob_x1", "blob_x2"];
+const BLOB_Y: [&str; 3] = ["blob_y0", "blob_y1", "blob_y2"];
+const BLOB_WIDTH: [&str; 3] = ["blob_width0", "blob_width1", "blob_width2"];
+const BLOB_HEIGHT: [&str; 3] = ["blob_height0", "blob_height1", "blob_height2"];
+const BLOB_ELLIPSE_A: [&str; 3] = ["blob_ellipse_a0", "blob_ellipse_a1", "blob_ellipse_a2"];
+const BLOB_ELLIPSE_B: [&str; 3] = ["blob_ellipse_b0", "blob_ellipse_b1", "blob_ellipse_b2"];
+const BLOB_ROTATION: [&str; 3] = ["blob_rotation0", "blob_rotation1", "blob_rotation2"];
+const BLOB_CONFIDENCE: [&str; 3] = ["blob_confidence0", "blob_confidence1", "blob_confidence2"];
 
 // Phase boundaries (state_index, until_seconds). 0=PreLaunch..6=Landed.
 const PHASES: [(u32, f64); 7] = [
@@ -289,15 +298,18 @@ fn push_frame(mw: &mut Middleware, ts: i64, f: &MockFrame) {
     let _ = mw.push_data("payload", "horiz_y2", TelemetryData::new().with_timestamp(ts).with_value(f.horiz.3));
     let _ = mw.push_data("payload", "horiz_valid", TelemetryData::new().with_timestamp(ts).with_value(f.horiz.4));
     for b in &f.blobs {
-        let i = b.index;
-        let _ = mw.push_data("payload", &format!("blob_x{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.x));
-        let _ = mw.push_data("payload", &format!("blob_y{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.y));
-        let _ = mw.push_data("payload", &format!("blob_width{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.width));
-        let _ = mw.push_data("payload", &format!("blob_height{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.height));
-        let _ = mw.push_data("payload", &format!("blob_ellipse_a{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.a));
-        let _ = mw.push_data("payload", &format!("blob_ellipse_b{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.b));
-        let _ = mw.push_data("payload", &format!("blob_rotation{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.rotation));
-        let _ = mw.push_data("payload", &format!("blob_confidence{i}"), TelemetryData::new().with_timestamp(ts).with_value(b.confidence));
+        let i = b.index as usize;
+        if i >= BLOB_X.len() {
+            continue;
+        }
+        let _ = mw.push_data("payload", BLOB_X[i], TelemetryData::new().with_timestamp(ts).with_value(b.x));
+        let _ = mw.push_data("payload", BLOB_Y[i], TelemetryData::new().with_timestamp(ts).with_value(b.y));
+        let _ = mw.push_data("payload", BLOB_WIDTH[i], TelemetryData::new().with_timestamp(ts).with_value(b.width));
+        let _ = mw.push_data("payload", BLOB_HEIGHT[i], TelemetryData::new().with_timestamp(ts).with_value(b.height));
+        let _ = mw.push_data("payload", BLOB_ELLIPSE_A[i], TelemetryData::new().with_timestamp(ts).with_value(b.a));
+        let _ = mw.push_data("payload", BLOB_ELLIPSE_B[i], TelemetryData::new().with_timestamp(ts).with_value(b.b));
+        let _ = mw.push_data("payload", BLOB_ROTATION[i], TelemetryData::new().with_timestamp(ts).with_value(b.rotation));
+        let _ = mw.push_data("payload", BLOB_CONFIDENCE[i], TelemetryData::new().with_timestamp(ts).with_value(b.confidence));
     }
 }
 
@@ -314,6 +326,7 @@ impl MockTelemetry {
         let dt = TIME_SCALE / UPDATE_HZ;
         let mut t = 0.0_f64;
         let mut ticker = interval(Duration::from_millis((1000.0 / UPDATE_HZ) as u64));
+        ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
         loop {
             tokio::select! {
