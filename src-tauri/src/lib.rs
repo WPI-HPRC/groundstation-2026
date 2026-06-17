@@ -28,6 +28,7 @@ use crate::backend::{
     // tracker_interface,
     video_capture_interface,
     joystick_input,
+    mock_telemetry,
 };
 
 // commands for tauri to call from frontend
@@ -127,9 +128,18 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
         joystick.run(joystick_shutdown).await;
     });
     app_handle.manage(joystick_handle);
+
+    // Mock telemetry — opt-in via env var so the real radio path is untouched by default.
+    if std::env::var("HPRC_MOCK_TELEM").as_deref() == Ok("1") {
+        let mock_shutdown = shutdown_rx.clone();
+        let mock = mock_telemetry::new(middleware.clone());
+        tauri::async_runtime::spawn(async move {
+            mock.run(mock_shutdown).await;
+        });
+        println!("[mock_telemetry] HPRC_MOCK_TELEM=1 — generating mock data");
+    }
+
     
-
-
     // let tracker_interface = tracker_interface::new(middleware.clone());
     // tauri::async_runtime::spawn(async move {
     //     tracker_interface.run(shutdown_rx.clone()).await;
