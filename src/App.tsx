@@ -72,9 +72,7 @@ function App() {
   return (
     <main className="container">
       <div className="video-layer" aria-hidden="true" />
-      <div className="callsign-badge" aria-label="Rocket HAM radio call sign">
-        KV0R
-      </div>
+
       <ProgressBar
         title="Altitude (AGL)"
         secondary="UNOFFICIAL"

@@ -99,24 +99,6 @@ body {
   background-repeat: no-repeat;
 }
 
-.callsign-badge {
-  position: absolute;
-  z-index: 2;
-  top: 2.5%;
-  right: 2.5%;
-  padding: 0.35rem 0.8rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  color: white;
-  font-size: clamp(14px, 1.5cqw, 22px);
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
-  pointer-events: none;
-}
 
 /* 
 .container::before {
@@ -347,12 +329,7 @@ body {
     min-width: 22px;
   }
 
-  .callsign-badge {
-    top: 1.5%;
-    right: 3%;
-    padding: 0.3rem 0.65rem;
-    font-size: clamp(12px, 4cqw, 18px);
-  }
+
 }
 
 @media (max-width: 760px) and (orientation: portrait) {
