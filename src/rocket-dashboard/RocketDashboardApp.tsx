@@ -17,7 +17,12 @@ export function RocketDashboardApp() {
 
   return (
     <div className="dash-root">
-      <Sidebar latest={snap.latest} droppedFrames={snap.droppedFrames} />
+      <Sidebar
+        latest={snap.latest}
+        droppedFrames={snap.droppedFrames}
+        missingFirstFrameFields={snap.missingFirstFrameFields}
+        emittedFrames={snap.emittedFrames}
+      />
       <main className="dash-main">
         <div className="dash-tabbar">
           <button className={`dash-tab ${tab === "graphs" ? "active" : ""}`} onClick={() => setTab("graphs")}>

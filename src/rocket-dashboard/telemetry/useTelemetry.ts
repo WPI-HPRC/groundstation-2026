@@ -10,6 +10,8 @@ import { chartX, normalizeEpochMs, updateLaunchWallMs, type ChartTimeMode } from
 export interface TelemetrySnapshot {
   latest: TelemetryFrame | null;
   droppedFrames: number;
+  missingFirstFrameFields: string[];
+  emittedFrames: number;
   /** Parallel arrays for charts: timestamps (s) + series values. */
   history: {
     /** Wall-clock unix seconds pre-launch; T+ seconds after launch. */
@@ -61,19 +63,26 @@ export function useTelemetry(source: TelemetrySource): TelemetrySnapshot {
     source.start();
 
     let lastVersionRendered = -1;
+    let lastDiagnosticsRendered = "";
     const minInterval = 1000 / RENDER_HZ;
 
     const interval = window.setInterval(() => {
       const v = versionRef.current;
-      if (v !== lastVersionRendered) {
+      const diagnostics =
+        "diagnostics" in (source as any) ? (source as TelemetrySourceWithDiagnostics).diagnostics() : null;
+      const diagnosticsKey = JSON.stringify(diagnostics ?? {});
+      if (v !== lastVersionRendered || diagnosticsKey !== lastDiagnosticsRendered) {
         lastVersionRendered = v;
+        lastDiagnosticsRendered = diagnosticsKey;
         setSnapshot(
           buildSnapshot(
             framesRef.current.toArray(),
             launchWallMsRef.current,
             maxVelRef.current.max,
             maxAccelRef.current.max,
-            "diagnostics" in (source as any) ? (source as TelemetrySourceWithDiagnostics).diagnostics().droppedFrames : 0
+            diagnostics?.droppedFrames ?? 0,
+            diagnostics?.missingFirstFrameFields ?? [],
+            diagnostics?.emittedFrames ?? 0
           )
         );
       }
@@ -95,6 +104,8 @@ function emptySnapshot(): TelemetrySnapshot {
   return {
     latest: null,
     droppedFrames: 0,
+    missingFirstFrameFields: [],
+    emittedFrames: 0,
     history: {
       t: [],
       timeMode: "wall",
@@ -117,10 +128,14 @@ function buildSnapshot(
   launchWallMs: number | null,
   maxVel: number,
   maxAccel: number,
-  droppedFrames: number
+  droppedFrames: number,
+  missingFirstFrameFields: string[],
+  emittedFrames: number
 ): TelemetrySnapshot {
   const s = emptySnapshot();
   s.droppedFrames = droppedFrames;
+  s.missingFirstFrameFields = missingFirstFrameFields;
+  s.emittedFrames = emittedFrames;
   if (frames.length === 0) return s;
 
   const wallNow = Date.now();

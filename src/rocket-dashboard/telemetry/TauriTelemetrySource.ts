@@ -6,6 +6,20 @@ import { pressureToAltitude } from "./baro";
 type LatestDto = { timestamp: number; value: string };
 
 const MIN_POLL_MS = 10;
+const IDENTITY_QUAT: Quat = { w: 1, i: 0, j: 0, k: 0 };
+const ZERO_VEC3: Vec3 = { x: 0, y: 0, z: 0 };
+
+function isTelemetryDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return (
+      window.localStorage.getItem("HPRC_TELEM_DEBUG") === "1" ||
+      new URLSearchParams(window.location.search).get("hprcTelemDebug") === "1"
+    );
+  } catch {
+    return false;
+  }
+}
 
 function parseNum(v: string | null | undefined): number | null {
   if (v == null) return null;
@@ -53,6 +67,10 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
   private lastFrame: TelemetryFrame | null = null;
   private droppedFrames = 0;
   private pollInFlight = false;
+  private emittedFrames = 0;
+  private lastMissingLogMs = 0;
+  private lastFrameLogMs = 0;
+  private missingFirstFrameFields: string[] = [];
 
   constructor({ updateHz = 20 }: { updateHz?: number } = {}) {
     this.updateMs = Math.max(MIN_POLL_MS, Math.round(1000 / updateHz));
@@ -88,7 +106,11 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
   }
 
   diagnostics() {
-    return { droppedFrames: this.droppedFrames };
+    return {
+      droppedFrames: this.droppedFrames,
+      missingFirstFrameFields: this.missingFirstFrameFields,
+      emittedFrames: this.emittedFrames,
+    };
   }
 
   private async pollOnce(): Promise<void> {
@@ -193,6 +215,31 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
     const pressureN = parseNum(alt?.value);
     const altN = pressureN != null ? pressureToAltitude(pressureN) : null;
     const stateN = stateFromU32(parseNum(st?.value));
+    const fieldStatuses = {
+      state: { raw: st, parsed: stateN },
+      battery_voltage: { raw: vbat, parsed: vbatN },
+      temp: { raw: temp, parsed: tempN },
+      pressure: { raw: alt, parsed: pressureN },
+      asm330_gyr0: { raw: gx, parsed: gxN },
+      asm330_gyr1: { raw: gy, parsed: gyN },
+      asm330_gyr2: { raw: gz, parsed: gzN },
+      asm330_accel0: { raw: ax, parsed: axN },
+      asm330_accel1: { raw: ay, parsed: ayN },
+      asm330_accel2: { raw: az, parsed: azN },
+      mag0: { raw: mx, parsed: mxN },
+      mag1: { raw: my, parsed: myN },
+      mag2: { raw: mz, parsed: mzN },
+      w: { raw: qw, parsed: qwN },
+      i: { raw: qi, parsed: qiN },
+      j: { raw: qj, parsed: qjN },
+      k: { raw: qk, parsed: qkN },
+      vel_x: { raw: vx, parsed: vxN },
+      vel_y: { raw: vy, parsed: vyN },
+      vel_z: { raw: vz, parsed: vzN },
+      pos_x: { raw: px, parsed: pxN },
+      pos_y: { raw: py, parsed: pyN },
+      pos_z: { raw: pz, parsed: pzN },
+    };
 
     const anyValid =
       ts != null ||
@@ -222,13 +269,15 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
 
     if (!anyValid) {
       this.droppedFrames++;
+      this.logMissingFirstFrame(fieldStatuses);
       return;
     }
 
-    // If we don't yet have a last frame, require all essential fields to be present
-    // so we never emit fabricated zeros.
+    // If we don't yet have a last frame, require the firmware fields needed for
+    // charts/readouts. EKF may be absent on current flight firmware, so attitude
+    // and local position use safe defaults until those fields arrive.
     if (!this.lastFrame) {
-      const haveVec3 =
+      const haveSensorVec3 =
         gxN != null &&
         gyN != null &&
         gzN != null &&
@@ -237,54 +286,49 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
         azN != null &&
         mxN != null &&
         myN != null &&
-        mzN != null &&
-        vxN != null &&
-        vyN != null &&
-        vzN != null &&
-        pxN != null &&
-        pyN != null &&
-        pzN != null;
-      const haveQuat = qwN != null && qiN != null && qjN != null && qkN != null;
+        mzN != null;
       const haveScalars = vbatN != null && tempN != null && altN != null && stateN != null;
-      if (!(ts != null && haveVec3 && haveQuat && haveScalars)) {
+      if (!(ts != null && haveSensorVec3 && haveScalars)) {
         this.droppedFrames++;
+        this.logMissingFirstFrame(fieldStatuses);
         return;
       }
+      this.logMissingFirstFrame(fieldStatuses);
     }
 
     const gyro: Vec3 = {
-      x: gxN ?? this.lastFrame!.gyro.x,
-      y: gyN ?? this.lastFrame!.gyro.y,
-      z: gzN ?? this.lastFrame!.gyro.z,
+      x: gxN ?? this.lastFrame?.gyro.x ?? ZERO_VEC3.x,
+      y: gyN ?? this.lastFrame?.gyro.y ?? ZERO_VEC3.y,
+      z: gzN ?? this.lastFrame?.gyro.z ?? ZERO_VEC3.z,
     };
     const accel: Vec3 = {
-      x: axN ?? this.lastFrame!.accel.x,
-      y: ayN ?? this.lastFrame!.accel.y,
-      z: azN ?? this.lastFrame!.accel.z,
+      x: axN ?? this.lastFrame?.accel.x ?? ZERO_VEC3.x,
+      y: ayN ?? this.lastFrame?.accel.y ?? ZERO_VEC3.y,
+      z: azN ?? this.lastFrame?.accel.z ?? ZERO_VEC3.z,
     };
     const mag: Vec3 = {
-      x: mxN ?? this.lastFrame!.mag.x,
-      y: myN ?? this.lastFrame!.mag.y,
-      z: mzN ?? this.lastFrame!.mag.z,
+      x: mxN ?? this.lastFrame?.mag.x ?? ZERO_VEC3.x,
+      y: myN ?? this.lastFrame?.mag.y ?? ZERO_VEC3.y,
+      z: mzN ?? this.lastFrame?.mag.z ?? ZERO_VEC3.z,
     };
 
     const orientation: Quat = {
-      w: qwN ?? this.lastFrame!.orientation.w,
-      i: qiN ?? this.lastFrame!.orientation.i,
-      j: qjN ?? this.lastFrame!.orientation.j,
-      k: qkN ?? this.lastFrame!.orientation.k,
+      w: qwN ?? this.lastFrame?.orientation.w ?? IDENTITY_QUAT.w,
+      i: qiN ?? this.lastFrame?.orientation.i ?? IDENTITY_QUAT.i,
+      j: qjN ?? this.lastFrame?.orientation.j ?? IDENTITY_QUAT.j,
+      k: qkN ?? this.lastFrame?.orientation.k ?? IDENTITY_QUAT.k,
     };
 
     const velX = vxN ?? 0;
     const velY = vyN ?? 0;
     const velZ = vzN ?? 0;
     const velocity =
-      vxN != null && vyN != null && vzN != null ? Math.hypot(velX, velY, velZ) : this.lastFrame!.velocity;
+      vxN != null && vyN != null && vzN != null ? Math.hypot(velX, velY, velZ) : this.lastFrame?.velocity ?? 0;
 
     const positionLocal: Vec3 = {
-      x: pxN ?? this.lastFrame!.positionLocal.x,
-      y: pyN ?? this.lastFrame!.positionLocal.y,
-      z: pzN ?? this.lastFrame!.positionLocal.z,
+      x: pxN ?? this.lastFrame?.positionLocal.x ?? ZERO_VEC3.x,
+      y: pyN ?? this.lastFrame?.positionLocal.y ?? ZERO_VEC3.y,
+      z: pzN ?? this.lastFrame?.positionLocal.z ?? ZERO_VEC3.z,
     };
 
     const acceleration = Math.hypot(accel.x, accel.y, accel.z);
@@ -297,21 +341,71 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
 
     const frame: TelemetryFrame = {
       timestamp: frameTimestamp,
-      state: stateN ?? this.lastFrame!.state,
+      state: stateN ?? this.lastFrame?.state ?? FlightState.PreLaunch,
       orientation,
       velocity,
       acceleration,
-      voltage: vbatN ?? this.lastFrame!.voltage,
+      voltage: vbatN ?? this.lastFrame?.voltage ?? 0,
       gyro,
       accel,
       mag,
-      altitude: altN ?? this.lastFrame!.altitude,
-      temperature: tempN ?? this.lastFrame!.temperature,
+      altitude: altN ?? this.lastFrame?.altitude ?? 0,
+      temperature: tempN ?? this.lastFrame?.temperature ?? 0,
       positionLocal,
     };
 
     this.lastFrame = frame;
+    this.logEmittedFrame(frame);
     this.emit(frame);
+  }
+
+  private logMissingFirstFrame(
+    fields: Record<string, { raw: LatestDto | null; parsed: unknown }>
+  ): void {
+    const missing = Object.entries(fields)
+      .filter(([, value]) => value.raw == null || value.parsed == null)
+      .map(([field]) => field);
+    this.missingFirstFrameFields = missing;
+
+    if (!isTelemetryDebugEnabled()) return;
+
+    const now = Date.now();
+    if (now - this.lastMissingLogMs < 1000) return;
+    this.lastMissingLogMs = now;
+
+    const received = Object.fromEntries(
+      Object.entries(fields)
+        .filter(([, value]) => value.raw != null && value.parsed != null)
+        .map(([field, value]) => [field, value.raw])
+    );
+
+    console.warn("[telemetry] waiting for first complete Tauri frame", {
+      missing,
+      received,
+      droppedFrames: this.droppedFrames,
+    });
+  }
+
+  private logEmittedFrame(frame: TelemetryFrame): void {
+    if (!isTelemetryDebugEnabled()) return;
+
+    const now = Date.now();
+    if (this.emittedFrames > 0 && now - this.lastFrameLogMs < 5000) {
+      this.emittedFrames++;
+      return;
+    }
+
+    this.lastFrameLogMs = now;
+    this.emittedFrames++;
+    console.info("[telemetry] emitted Tauri frame", {
+      emittedFrames: this.emittedFrames,
+      timestamp: frame.timestamp,
+      state: frame.state,
+      altitude: frame.altitude,
+      velocity: frame.velocity,
+      voltage: frame.voltage,
+      droppedFrames: this.droppedFrames,
+    });
   }
 }
 

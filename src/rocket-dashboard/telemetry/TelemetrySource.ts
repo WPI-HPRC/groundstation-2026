@@ -11,6 +11,8 @@ export interface TelemetrySource {
 
 export interface TelemetrySourceDiagnostics {
   droppedFrames: number;
+  missingFirstFrameFields?: string[];
+  emittedFrames?: number;
 }
 
 export interface TelemetrySourceWithDiagnostics extends TelemetrySource {

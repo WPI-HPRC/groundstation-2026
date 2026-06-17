@@ -36,6 +36,10 @@ impl TelemetryStores {
     pub fn list_stores(&self) -> Vec<String> {
         self.stores.iter().map(|s| s.key().clone()).collect()
     }
+
+    pub fn list_fields(&self, store_name: &str) -> Result<Vec<String>, String> {
+        Ok(self.get_store(store_name)?.get_field_keys())
+    }
     
     pub fn has_store(&self, store_name: &str) -> bool {
         self.stores.contains_key(store_name)

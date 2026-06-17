@@ -210,6 +210,7 @@ pub fn run() {
             commands::get_telemetry,
             commands::get_latest_telemetry,
             commands::get_telemetry_store_names,
+            commands::spoof_rocket_telemetry_once,
             commands::start_recording_all,
             commands::stop_recording_all,
             commands::get_recording_status,

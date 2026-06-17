@@ -103,7 +103,7 @@ impl Middleware {
         if !self.telemetry.has_store(store_name) {
             self.create_new_store(store_name)?;
         }
-        println!("{} {} {:#?}", store_name, field, data); // holy prints
+        println!("hp: d{} {} {:#?}", store_name, field, data); // holy prints
         self.telemetry.push(store_name, field, data)
         
     }
@@ -125,6 +125,10 @@ impl Middleware {
 
     pub fn get_store_names(&self) -> Vec<String> {
         self.telemetry.list_stores()
+    }
+
+    pub fn get_field_names(&self, store_name: &str) -> Result<Vec<String>, String> {
+        self.telemetry.list_fields(store_name)
     }
 
     fn start_recording(&self, store_name: &str) -> Result<(), String> {

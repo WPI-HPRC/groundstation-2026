@@ -138,6 +138,46 @@ describe("TauriTelemetrySource", () => {
     expect(frame!.orientation).toEqual({ w: 1, i: 0, j: 0, k: 0 });
   });
 
+  it("emits the first frame with safe defaults when EKF fields are missing", async () => {
+    const values = fullFrameValues();
+    mockInvoke.mockImplementation(async (_cmd, args?: unknown) => {
+      const fieldName = (args as TelemetryInvokeArgs | undefined)?.fieldName;
+      if (!fieldName) return null;
+      if (["w", "i", "j", "k", "vel_x", "vel_y", "vel_z", "pos_x", "pos_y", "pos_z"].includes(fieldName)) {
+        return null;
+      }
+      const v = values[fieldName as keyof typeof values];
+      if (v === undefined) return null;
+      return dto(v as string | number, values.ts);
+    });
+
+    const src = new TauriTelemetrySource({ updateHz: 20 });
+    let frame: import("../telemetry/types").TelemetryFrame | null = null;
+    src.subscribe((f) => {
+      frame = f;
+    });
+    src.start();
+    await flushPoll();
+    src.stop();
+
+    expect(frame).not.toBeNull();
+    expect(frame!.orientation).toEqual({ w: 1, i: 0, j: 0, k: 0 });
+    expect(frame!.velocity).toBe(0);
+    expect(frame!.positionLocal).toEqual({ x: 0, y: 0, z: 0 });
+    expect(src.diagnostics().missingFirstFrameFields).toEqual([
+      "w",
+      "i",
+      "j",
+      "k",
+      "vel_x",
+      "vel_y",
+      "vel_z",
+      "pos_x",
+      "pos_y",
+      "pos_z",
+    ]);
+  });
+
   it("skips overlapping poll ticks while a poll is in flight", async () => {
     let releasePoll: (() => void) | undefined;
     const pollGate = new Promise<void>((resolve) => {

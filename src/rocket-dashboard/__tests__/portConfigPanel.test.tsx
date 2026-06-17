@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
@@ -13,27 +13,32 @@ describe("PortConfigPanel", () => {
     delete (window as any).__TAURI_INTERNALS__;
   });
 
-  it("renders all five labeled selectors", async () => {
+  it("renders serial selectors and debug spoof control", async () => {
     invokeMock.mockResolvedValue([]);
     render(<PortConfigPanel />);
     for (const label of [
       "Telem radio",
-      "Live video webcam",
-      "Tracking webcam",
       "Tracker serial",
       "Pointing serial",
+      "Debug telemetry",
     ]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
+    expect(screen.getByRole("button", { name: "Spoof Rocket Frame" })).toBeTruthy();
   });
 
-  it("loads serial ports once and video devices once (shared hooks)", async () => {
+  it("loads serial ports once for the shared serial hooks", async () => {
     invokeMock.mockResolvedValue([]);
     render(<PortConfigPanel />);
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("get_serial_port_names"));
     const serialCalls = invokeMock.mock.calls.filter((c) => c[0] === "get_serial_port_names").length;
-    const videoCalls = invokeMock.mock.calls.filter((c) => c[0] === "list_video_devices").length;
     expect(serialCalls).toBe(1);
-    expect(videoCalls).toBe(1);
+  });
+
+  it("invokes the debug spoof command from the dashboard", async () => {
+    invokeMock.mockResolvedValue([]);
+    render(<PortConfigPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Spoof Rocket Frame" }));
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("spoof_rocket_telemetry_once"));
   });
 });
