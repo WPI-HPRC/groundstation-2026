@@ -17,6 +17,12 @@ pub struct VideoFrame {
     pub height: u32,
 }
 
+#[derive(Debug, Clone)]
+pub struct PreviewJpegFrame {
+    pub timestamp: i64,
+    pub data: Vec<u8>,
+}
+
 // provide builtin function on the frame to convert to base-64 encoded version for frontend
 impl VideoFrame {
     pub fn to_frontend_base64(&self) -> String {
@@ -38,6 +44,7 @@ impl VideoFrame {
 }
 
 pub type SharedFrame = Arc<VideoFrame>;
+pub type SharedPreviewJpegFrame = Arc<PreviewJpegFrame>;
 
 /// store a specific video stream
 struct VideoStream {
@@ -47,6 +54,7 @@ struct VideoStream {
     frame_count: u64,
 
     latest_frame: Option<SharedFrame>,
+    latest_preview_jpeg: Option<SharedPreviewJpegFrame>,
     encoder_id: Option<EncoderId>,
 }
 
@@ -58,6 +66,7 @@ impl VideoStream {
             video_path: None,
             frame_count: 0,
             latest_frame: None,
+            latest_preview_jpeg: None,
             encoder_id: None,
         }
     }
@@ -119,6 +128,14 @@ impl VideoStream {
     pub fn latest_frame(&self) -> Option<SharedFrame> {
         self.latest_frame.clone()
     }
+
+    pub fn push_preview_jpeg(&mut self, frame: SharedPreviewJpegFrame) {
+        self.latest_preview_jpeg = Some(frame);
+    }
+
+    pub fn latest_preview_jpeg(&self) -> Option<SharedPreviewJpegFrame> {
+        self.latest_preview_jpeg.clone()
+    }
 }
 
 
@@ -166,6 +183,16 @@ impl VideoStreams {
         stream.push_frame(frame, &self.encoder_pool)
     }
 
+    pub fn push_preview_jpeg(
+        &self,
+        name: &str,
+        frame: SharedPreviewJpegFrame,
+    ) -> Result<(), String> {
+        let mut stream = self.streams.get_mut(name).ok_or_else(|| format!("Stream not found: '{}'", name))?;
+        stream.push_preview_jpeg(frame);
+        Ok(())
+    }
+
     /// Start recording a named stream
     pub fn start_recording(
         &self,
@@ -207,6 +234,15 @@ impl VideoStreams {
         self.streams
             .get(name)
             .and_then(|s| s.latest_frame())
+    }
+
+    pub fn latest_preview_jpeg(
+        &self,
+        name: &str,
+    ) -> Option<SharedPreviewJpegFrame> {
+        self.streams
+            .get(name)
+            .and_then(|s| s.latest_preview_jpeg())
     }
 
     pub fn latest_frame_base64(

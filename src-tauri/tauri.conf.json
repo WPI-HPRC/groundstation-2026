@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "groundstation-2026",
-        "width": 800,
-        "height": 600
+        "label": "main-bottom",
+        "title": "HPRC Bottom Overlay",
+        "url": "index.html?view=main-bottom",
+        "width": 1600,
+        "height": 360
       }
     ],
     "security": {

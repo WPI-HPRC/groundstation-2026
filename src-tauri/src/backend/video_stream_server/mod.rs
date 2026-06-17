@@ -67,32 +67,52 @@ fn handle_client(mut stream: TcpStream, middleware: Arc<Mutex<Middleware>>) {
 
     let mut last_ts = None;
     loop {
-        let frame = {
+        let preview_frame = {
             let middleware = middleware.blocking_lock();
-            middleware.get_latest_video_frame_jpeg_bytes(&name)
+            middleware.latest_preview_jpeg(&name)
         };
 
-        match frame {
-            Ok(Some((ts, jpeg))) if Some(ts) != last_ts => {
-                last_ts = Some(ts);
-                let part_header = format!(
-                    "--{BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: {}\r\n\r\n",
-                    jpeg.len()
-                );
-                if stream.write_all(part_header.as_bytes()).is_err()
-                    || stream.write_all(&jpeg).is_err()
-                    || stream.write_all(b"\r\n").is_err()
-                {
+        match preview_frame {
+            Some(frame) if Some(frame.timestamp) != last_ts => {
+                last_ts = Some(frame.timestamp);
+                if write_jpeg_part(&mut stream, &frame.data).is_err() {
                     return;
                 }
             }
-            Ok(_) => {}
-            Err(err) => {
-                eprintln!("[video_stream] failed to encode {name}: {err}");
+            _ => {
+                let frame = {
+                    let middleware = middleware.blocking_lock();
+                    middleware.latest_video_frame(&name)
+                };
+                if let Some(frame) = frame {
+                    if Some(frame.timestamp) != last_ts {
+                        last_ts = Some(frame.timestamp);
+                        match frame.to_frontend_jpeg(75) {
+                            Ok(jpeg) => {
+                                if write_jpeg_part(&mut stream, &jpeg).is_err() {
+                                    return;
+                                }
+                            }
+                            Err(err) => {
+                                eprintln!("[video_stream] failed to encode {name}: {err}");
+                            }
+                        }
+                    }
+                }
             }
         }
         thread::sleep(FRAME_INTERVAL);
     }
+}
+
+fn write_jpeg_part(stream: &mut TcpStream, jpeg: &[u8]) -> std::io::Result<()> {
+    let part_header = format!(
+        "--{BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: {}\r\n\r\n",
+        jpeg.len()
+    );
+    stream.write_all(part_header.as_bytes())?;
+    stream.write_all(jpeg)?;
+    stream.write_all(b"\r\n")
 }
 
 fn read_request_path(stream: &mut TcpStream) -> Option<String> {

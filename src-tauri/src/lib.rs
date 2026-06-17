@@ -1,7 +1,7 @@
 // Main Tauri Application
 
 use tauri::{Manager, RunEvent, WebviewWindowBuilder, WindowEvent};
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use std::sync::{Arc};
 use std::fs;
@@ -17,7 +17,7 @@ use crate::middleware::Middleware;
 
 // our channels for misc IPC
 mod channels; 
-use crate::channels::{self as Channels, LiveVideoHandle, PlaybackState, TrackingCameraHandle}; 
+use crate::channels::{self as Channels, PlaybackState}; 
 
 mod commands;
 
@@ -26,8 +26,6 @@ use crate::backend::{
     // data_playback, 
     telemetry_radio_interface,
     // tracker_interface,
-    video_capture_interface,
-    video_stream_server,
     joystick_input,
     mock_telemetry,
 };
@@ -49,7 +47,6 @@ fn create_data_dir(app: &tauri::App) -> PathBuf {
 fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     
     let app_handle = app.handle();
-    let main_window = app.get_webview_window("main").unwrap();
 
     // init middleware
     let middleware = Arc::new(Mutex::new(Middleware::new(create_data_dir(app))));
@@ -81,9 +78,6 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     // app_handle.manage(Channels::HardwarePorts { telemetry_radio_port_tx, live_video_port_tx, tracking_video_port_tx, tracker_port_tx, pointing_stick_port_tx });
     app_handle.manage(Channels::RemoteControlChannels {remote_control_tx, payload_control_tx});
 
-    video_stream_server::spawn(middleware.clone(), shutdown_rx.clone());
-
-
     // create our backend modules
 
     // let data_playback = data_playback::new(middleware.clone(), playback_rx.clone());
@@ -99,21 +93,6 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     });
     app_handle.manage(telem_radio_handle);
     
-
-    let live_video_shutdown = shutdown_rx.clone();
-    let (live_video_cam, live_video_cam_handle) = video_capture_interface::new("live_vide", middleware.clone());
-    tauri::async_runtime::spawn(async move {
-        live_video_cam.run(live_video_shutdown).await;
-    });
-    app_handle.manage(LiveVideoHandle(live_video_cam_handle));
-
-    let tracking_cam_shutdown = shutdown_rx.clone();
-    let (tracking_cam, tracking_cam_handle) = video_capture_interface::new("tracking", middleware.clone());
-    tauri::async_runtime::spawn(async move {
-        tracking_cam.run(tracking_cam_shutdown).await;
-    });
-    app_handle.manage(TrackingCameraHandle(tracking_cam_handle));
-
 
     // let telem_shutdown_rx2 = shutdown_rx.clone();
     // let (telem_radio2, telem_radio_handle2) 
@@ -149,6 +128,27 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     // });
 
 
+
+    // OBS-friendly visualization windows.
+    let _altitude_bar = WebviewWindowBuilder::new(
+        app,
+        "altitude-bar",
+        tauri::WebviewUrl::App("index.html?view=altitude-bar".into()),
+    )
+    .title("HPRC Altitude Bar")
+    .inner_size(260.0, 900.0)
+    .resizable(true)
+    .build()?;
+
+    let _trajectory_window = WebviewWindowBuilder::new(
+        app,
+        "trajectory",
+        tauri::WebviewUrl::App("index.html?view=trajectory".into()),
+    )
+    .title("HPRC Trajectory")
+    .inner_size(500.0, 700.0)
+    .resizable(true)
+    .build()?;
 
     // create secondary windows
     // let livestream_window = WebviewWindowBuilder::new(
@@ -210,12 +210,6 @@ pub fn run() {
             commands::get_telemetry,
             commands::get_latest_telemetry,
             commands::get_telemetry_store_names,
-            commands::get_video_stream_names,
-            commands::get_latest_video_frame,
-            commands::get_latest_video_frame_jpeg,
-            commands::list_video_devices,
-            commands::set_front_camera_device,
-            commands::set_payload_camera_device,
             commands::start_recording_all,
             commands::stop_recording_all,
             commands::get_recording_status,
@@ -230,7 +224,7 @@ pub fn run() {
             .. 
         } = event
         {
-            if label == "main" {
+            if label == "main-bottom" {
                 println!("Program closing, sending shutdown signal...");
 
                 // send shutdown to background tasks

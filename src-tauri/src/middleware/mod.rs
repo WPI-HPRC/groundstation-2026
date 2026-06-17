@@ -11,7 +11,7 @@ pub mod telemetry_stores;
 pub mod video_encoder_manager;
 
 use video_streams::
-    {VideoFrame, VideoStreams};
+    {PreviewJpegFrame, SharedFrame, SharedPreviewJpegFrame, VideoFrame, VideoStreams};
 use video_encoder_manager::EncoderManager;
 use telemetry_stores::
     {TelemetryData, TelemetryStores};
@@ -144,6 +144,18 @@ impl Middleware {
         self.video_streams.push_frame(name, frame)
     }
 
+    pub fn process_preview_jpeg(
+        &self,
+        name: &str,
+        frame: Arc<PreviewJpegFrame>,
+    ) -> Result<(), String> {
+        if !self.video_streams.has_stream(name) {
+            self.video_streams.create_stream(name);
+        }
+
+        self.video_streams.push_preview_jpeg(name, frame)
+    }
+
     pub fn get_latest_video_frame(
     &self,
     name: &str,
@@ -174,15 +186,12 @@ impl Middleware {
         }))
     }
 
-    pub fn get_latest_video_frame_jpeg_bytes(
-        &self,
-        name: &str,
-    ) -> Result<Option<(i64, Vec<u8>)>, String> {
-        let Some(frame) = self.video_streams.latest_frame(name) else {
-            return Ok(None);
-        };
+    pub fn latest_video_frame(&self, name: &str) -> Option<SharedFrame> {
+        self.video_streams.latest_frame(name)
+    }
 
-        Ok(Some((frame.timestamp, frame.to_frontend_jpeg(75)?)))
+    pub fn latest_preview_jpeg(&self, name: &str) -> Option<SharedPreviewJpegFrame> {
+        self.video_streams.latest_preview_jpeg(name)
     }
 
     pub fn get_video_keys(&self) -> Vec<String> {

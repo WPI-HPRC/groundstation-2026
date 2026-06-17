@@ -55,7 +55,10 @@ export function TrajectoryViewer({
   const [debugLivePoints, setDebugLivePoints] = useState<TrajectoryPoint[]>([]);
 
   useEffect(() => {
-    if (!debug && points?.length) return;
+    if (!debug) {
+      setDebugLivePoints([]);
+      return;
+    }
 
     const fullTrajectory = generateDebugRocketTrajectory();
 
@@ -73,12 +76,10 @@ export function TrajectoryViewer({
     }, 100);
 
     return () => window.clearInterval(interval);
-  }, [debug, points?.length]);
+  }, [debug]);
 
   const displayedPoints =
-    points && points.length > 0 && !debug
-      ? points
-      : debugLivePoints;
+    debug ? debugLivePoints : points ?? [];
 
   useEffect(() => {
     if (!mountRef.current) return;

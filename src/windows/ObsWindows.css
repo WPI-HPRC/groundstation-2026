@@ -1,0 +1,67 @@
+.obs-window {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+  color: var(--fg-color);
+}
+
+.obs-bottom-window {
+  container-type: size;
+  --gauges-height: 100cqh;
+}
+
+.obs-bottom-window #gauges-container {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  padding-top: 0;
+  grid-template-columns: 15% 15% 40% 15% 15%;
+  mask-image: none;
+}
+
+.obs-bottom-window #gauges-container::before,
+.obs-bottom-window #gauges-container::after {
+  mask-image: none;
+}
+
+.obs-altitude-window {
+  container-type: size;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 2cqh 2cqw;
+  box-sizing: border-box;
+}
+
+.obs-altitude-window .ProgressBar {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.obs-trajectory-window {
+  container-type: size;
+}
+
+.obs-trajectory-window .trajectory-viewer-card {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  height: 100%;
+}
+
+.obs-trajectory-window .trajectory-viewer-canvas {
+  border-radius: 0;
+}
+
+.obs-trajectory-window .trajectory-viewer-canvas::after {
+  font-size: clamp(14px, 4cqw, 32px);
+}

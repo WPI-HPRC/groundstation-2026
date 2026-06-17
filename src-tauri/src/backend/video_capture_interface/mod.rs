@@ -7,18 +7,20 @@ use nokhwa::{
 use std::{
     sync::Arc,
     thread,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::{mpsc, Mutex};
 use tokio_util::sync::CancellationToken;
 
-use crate::middleware::{Middleware, video_streams::VideoFrame};
+use crate::middleware::{Middleware, video_streams::{PreviewJpegFrame, VideoFrame}};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PREFERRED_WIDTH: u32 = 1920;
 const PREFERRED_HEIGHT: u32 = 1080;
 const PREFERRED_FPS: u32 = 60;
+const FALLBACK_TARGET_WIDTH: u32 = 640;
+const FALLBACK_TARGET_HEIGHT: u32 = 480;
 
 // ── Format helpers ────────────────────────────────────────────────────────────
 
@@ -47,18 +49,78 @@ fn open_camera_with_fallback(index: CameraIndex) -> Result<Camera, String> {
             match Camera::new(index.clone(), mjpeg) {
                 Ok(c) => Ok(c),
                 Err(e) => {
-                    eprintln!("[video] MJPEG also unavailable ({e}), falling back to default");
-                    Camera::new(
-                        index,
-                        RequestedFormat::new::<RgbFormat>(
-                            RequestedFormatType::AbsoluteHighestFrameRate,
-                        ),
-                    )
-                    .map_err(|e| e.to_string())
+                    eprintln!("[video] MJPEG also unavailable ({e}), selecting from supported formats");
+                    open_best_supported_format(index)
                 }
             }
         }
     }
+}
+
+fn open_best_supported_format(index: CameraIndex) -> Result<Camera, String> {
+    let mut camera = Camera::new(
+        index,
+        RequestedFormat::new::<RgbFormat>(RequestedFormatType::None),
+    )
+    .map_err(|e| e.to_string())?;
+
+    let mut formats = camera.compatible_camera_formats().map_err(|e| e.to_string())?;
+    if formats.is_empty() {
+        return Err("camera reported no supported formats".to_string());
+    }
+
+    formats.sort_by_key(score_camera_format);
+    formats.reverse();
+
+    eprintln!("[video] Supported camera formats, ranked:");
+    for format in formats.iter().take(8) {
+        eprintln!(
+            "[video]   {}x{} @ {}fps {:?}",
+            format.width(),
+            format.height(),
+            format.frame_rate(),
+            format.format()
+        );
+    }
+
+    let selected = formats[0];
+    eprintln!(
+        "[video] Selected fallback format {}x{} @ {}fps {:?}",
+        selected.width(),
+        selected.height(),
+        selected.frame_rate(),
+        selected.format()
+    );
+
+    let selected_formats = [selected.format()];
+    Camera::new(
+        camera.index().clone(),
+        RequestedFormat::with_formats(
+            RequestedFormatType::Exact(selected),
+            &selected_formats,
+        ),
+    )
+    .map_err(|e| e.to_string())
+}
+
+fn score_camera_format(format: &CameraFormat) -> (u32, u32, u32, u32) {
+    let format_score = match format.format() {
+        FrameFormat::MJPEG => 3,
+        FrameFormat::YUYV => 2,
+        _ => 1,
+    };
+
+    let area = format.width().saturating_mul(format.height());
+    let target_area = FALLBACK_TARGET_WIDTH.saturating_mul(FALLBACK_TARGET_HEIGHT);
+    let distance_from_target = area.abs_diff(target_area);
+    let resolution_score = u32::MAX.saturating_sub(distance_from_target);
+
+    (
+        format.frame_rate(),
+        format_score,
+        resolution_score,
+        area,
+    )
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -120,6 +182,7 @@ impl CameraInput {
 
             let (stop_tx, mut stop_rx) = mpsc::channel::<()>(1);
             let (frame_tx, mut frame_rx) = mpsc::channel::<Arc<VideoFrame>>(32);
+            let (preview_tx, mut preview_rx) = mpsc::channel::<Arc<PreviewJpegFrame>>(8);
 
             // Blocking capture thread
             let join = thread::spawn(move || {
@@ -144,6 +207,9 @@ impl CameraInput {
                     camera.frame_format(),
                 );
 
+                let mut fps_window_start = Instant::now();
+                let mut fps_window_frames = 0u32;
+
                 loop {
                     if stop_rx.try_recv().is_ok() {
                         let _ = camera.stop_stream();
@@ -159,6 +225,33 @@ impl CameraInput {
                         }
                     };
 
+                    let timestamp = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as i64;
+
+                    if buffer.source_frame_format() == FrameFormat::MJPEG {
+                        let preview_frame = Arc::new(PreviewJpegFrame {
+                            timestamp,
+                            data: buffer.buffer().to_vec(),
+                        });
+                        let _ = preview_tx.try_send(preview_frame);
+                    }
+
+                    fps_window_frames += 1;
+                    let fps_elapsed = fps_window_start.elapsed();
+                    if fps_elapsed >= Duration::from_secs(3) {
+                        let measured_fps =
+                            fps_window_frames as f64 / fps_elapsed.as_secs_f64();
+                        eprintln!(
+                            "[video] Capturing {device_clone} at {:.1}fps measured (reported {}fps)",
+                            measured_fps,
+                            camera.frame_rate()
+                        );
+                        fps_window_start = Instant::now();
+                        fps_window_frames = 0;
+                    }
+
                     let decoded = match buffer.decode_image::<RgbFormat>() {
                         Ok(img) => img,
                         Err(e) => {
@@ -168,11 +261,6 @@ impl CameraInput {
                     };
 
                     let resolution = camera.resolution();
-                    let timestamp = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as i64;
-
                     let frame = Arc::new(VideoFrame {
                         timestamp,
                         data: decoded.into_raw(),
@@ -189,9 +277,24 @@ impl CameraInput {
             // Async side: push frames to middleware, watch for device swap or shutdown
             tokio::select! {
                 _ = async {
-                    while let Some(frame) = frame_rx.recv().await {
-                        if let Err(e) = middleware.lock().await.process_video_frame(&stream_name, frame) {
-                            eprintln!("[video] process_video_frame error: {e}");
+                    loop {
+                        tokio::select! {
+                            frame = frame_rx.recv() => match frame {
+                                Some(frame) => {
+                                    if let Err(e) = middleware.lock().await.process_video_frame(&stream_name, frame) {
+                                        eprintln!("[video] process_video_frame error: {e}");
+                                    }
+                                }
+                                None => break,
+                            },
+                            preview_frame = preview_rx.recv() => match preview_frame {
+                                Some(preview_frame) => {
+                                    if let Err(e) = middleware.lock().await.process_preview_jpeg(&stream_name, preview_frame) {
+                                        eprintln!("[video] process_preview_jpeg error: {e}");
+                                    }
+                                }
+                                None => break,
+                            },
                         }
                     }
                 } => {},
