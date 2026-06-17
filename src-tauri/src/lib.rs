@@ -170,6 +170,17 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     .resizable(true)
     .build()?;
 
+    // Payload window — live payload camera + joystick monitor + vision overlay.
+    let _payload = WebviewWindowBuilder::new(
+        app,
+        "payload",
+        tauri::WebviewUrl::App("payload.html".into()),
+    )
+    .title("HPRC Payload")
+    .inner_size(1280.0, 800.0)
+    .resizable(true)
+    .build()?;
+
     Ok(())
 }
 
