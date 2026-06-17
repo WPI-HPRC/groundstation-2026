@@ -25,6 +25,7 @@ describe("useTauriVideoStream", () => {
     renderHook(() => useTauriVideoStream("live_vide", canvasRef, { pollMs: 33, renderMs: 33, bufferFrames: 1 }));
 
     expect(invokeMock).toHaveBeenCalledTimes(1);
+    expect(invokeMock).toHaveBeenLastCalledWith("get_latest_video_frame_jpeg", { streamName: "live_vide" });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(32);
     });

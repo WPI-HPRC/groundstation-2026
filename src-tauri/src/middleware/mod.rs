@@ -23,6 +23,15 @@ pub struct VideoFrameFrontend {
     pub width: u32,
     pub height: u32,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct VideoFrameJpegFrontend {
+    pub timestamp: i64,
+    pub jpeg_base64: String,
+    pub width: u32,
+    pub height: u32,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct TelemetryDataFrontend {
     pub timestamp: i64,
@@ -148,6 +157,33 @@ impl Middleware {
         height: frame.height,
     })
 }
+
+    pub fn get_latest_video_frame_jpeg(
+        &self,
+        name: &str,
+    ) -> Result<Option<VideoFrameJpegFrontend>, String> {
+        let Some(frame) = self.video_streams.latest_frame(name) else {
+            return Ok(None);
+        };
+
+        Ok(Some(VideoFrameJpegFrontend {
+            timestamp: frame.timestamp,
+            jpeg_base64: frame.to_frontend_jpeg_base64(75)?,
+            width: frame.width,
+            height: frame.height,
+        }))
+    }
+
+    pub fn get_latest_video_frame_jpeg_bytes(
+        &self,
+        name: &str,
+    ) -> Result<Option<(i64, Vec<u8>)>, String> {
+        let Some(frame) = self.video_streams.latest_frame(name) else {
+            return Ok(None);
+        };
+
+        Ok(Some((frame.timestamp, frame.to_frontend_jpeg(75)?)))
+    }
 
     pub fn get_video_keys(&self) -> Vec<String> {
         self.video_streams.list_streams()

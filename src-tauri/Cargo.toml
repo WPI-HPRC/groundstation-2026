@@ -24,7 +24,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = "0.4.44"
 dashmap = "6.1.0"
-base64 = "0.22.1"
 csv = "1.4.0"
 flatbuffers = "25.12.19"
 serialport = "4.9.0"
@@ -32,7 +31,8 @@ tracing = "0.1.44"
 tokio-util = { version = "0.7.18", features = ["rt"] }
 nokhwa = { version = "0.10", features = ["input-native"] }
 gilrs = "0.11.2"
-image = "0.25.10"
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
 
 [dependencies.uuid]
 version = "1.20.0"
@@ -46,5 +46,3 @@ features = [
     "full"
 ]
 
-base64 = "0.22"
-image = { version = "0.25", default-features = false, features = ["jpeg"] }

@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use serde::{Deserialize, Serialize};
 use base64::{Engine as _, engine::general_purpose};
+use image::{codecs::jpeg::JpegEncoder, ExtendedColorType};
 use crate::middleware::video_encoder_manager::{EncoderId, EncoderManager};
 
 
@@ -20,6 +21,19 @@ pub struct VideoFrame {
 impl VideoFrame {
     pub fn to_frontend_base64(&self) -> String {
         general_purpose::STANDARD.encode(&self.data)
+    }
+
+    pub fn to_frontend_jpeg(&self, quality: u8) -> Result<Vec<u8>, String> {
+        let mut jpeg = Vec::new();
+        let mut encoder = JpegEncoder::new_with_quality(&mut jpeg, quality);
+        encoder
+            .encode(&self.data, self.width, self.height, ExtendedColorType::Rgb8)
+            .map_err(|e| e.to_string())?;
+        Ok(jpeg)
+    }
+
+    pub fn to_frontend_jpeg_base64(&self, quality: u8) -> Result<String, String> {
+        Ok(general_purpose::STANDARD.encode(self.to_frontend_jpeg(quality)?))
     }
 }
 

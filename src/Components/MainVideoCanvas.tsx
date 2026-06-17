@@ -1,24 +1,30 @@
-import { useRef } from "react";
-import { useTauriVideoStream, type TauriVideoStreamOptions } from "../video/useTauriVideoStream";
+import { useState } from "react";
+
+const MJPEG_PORT = 17777;
 
 export function MainVideoCanvas({
   streamName,
   className = "video-layer",
   label = "Live video",
-  videoOptions = { pollMs: 33, renderMs: 33, bufferFrames: 1 },
 }: {
   streamName: string;
   className?: string;
   label?: string;
-  videoOptions?: TauriVideoStreamOptions;
 }) {
-  const ref = useRef<HTMLCanvasElement | null>(null);
-  const size = useTauriVideoStream(streamName, ref, videoOptions);
+  const [hasVideo, setHasVideo] = useState(false);
+  const src = `http://127.0.0.1:${MJPEG_PORT}/video/${encodeURIComponent(streamName)}.mjpg`;
 
   return (
     <div className={className} aria-label={label}>
-      <canvas ref={ref} className="video-canvas" />
-      {!size ? (
+      <img
+        key={streamName}
+        src={src}
+        className="video-canvas"
+        alt=""
+        onLoad={() => setHasVideo(true)}
+        onError={() => setHasVideo(false)}
+      />
+      {!hasVideo ? (
         <div className="no-video-placeholder">
           <span>NO SIGNAL</span>
         </div>

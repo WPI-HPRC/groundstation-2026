@@ -1,7 +1,7 @@
 use crate::{
     backend::telemetry_radio_interface::{TelemetryRadioHandle, hprc}, 
     channels::{LiveVideoHandle, TrackingCameraHandle}, 
-    middleware::{Middleware, TelemetryDataFrontend, VideoFrameFrontend},
+    middleware::{Middleware, TelemetryDataFrontend, VideoFrameFrontend, VideoFrameJpegFrontend},
     backend::video_capture_interface::CameraHandle,
 };
 use std::sync::Arc;
@@ -131,6 +131,15 @@ pub async fn get_latest_video_frame(
 ) -> Result<Option<VideoFrameFrontend>, String> {
     let middleware = middleware.lock().await;
     Ok(middleware.get_latest_video_frame(&stream_name))
+}
+
+#[tauri::command]
+pub async fn get_latest_video_frame_jpeg(
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
+    stream_name: String,
+) -> Result<Option<VideoFrameJpegFrontend>, String> {
+    let middleware = middleware.lock().await;
+    middleware.get_latest_video_frame_jpeg(&stream_name)
 }
 
 #[tauri::command]

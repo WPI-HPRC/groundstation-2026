@@ -27,6 +27,7 @@ use crate::backend::{
     telemetry_radio_interface,
     // tracker_interface,
     video_capture_interface,
+    video_stream_server,
     joystick_input,
     mock_telemetry,
 };
@@ -79,6 +80,8 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     app_handle.manage(Channels::PlaybackControlChannel { playback_tx, playback_rx });
     // app_handle.manage(Channels::HardwarePorts { telemetry_radio_port_tx, live_video_port_tx, tracking_video_port_tx, tracker_port_tx, pointing_stick_port_tx });
     app_handle.manage(Channels::RemoteControlChannels {remote_control_tx, payload_control_tx});
+
+    video_stream_server::spawn(middleware.clone(), shutdown_rx.clone());
 
 
     // create our backend modules
@@ -209,6 +212,7 @@ pub fn run() {
             commands::get_telemetry_store_names,
             commands::get_video_stream_names,
             commands::get_latest_video_frame,
+            commands::get_latest_video_frame_jpeg,
             commands::list_video_devices,
             commands::set_front_camera_device,
             commands::set_payload_camera_device,

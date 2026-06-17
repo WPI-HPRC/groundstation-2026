@@ -1,25 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-
-const { useTauriVideoStreamMock } = vi.hoisted(() => ({
-  useTauriVideoStreamMock: vi.fn(),
-}));
-
-vi.mock("../video/useTauriVideoStream", () => ({
-  useTauriVideoStream: useTauriVideoStreamMock,
-}));
+import { describe, expect, it } from "vitest";
 
 import { MainVideoCanvas } from "./MainVideoCanvas";
 
 describe("MainVideoCanvas", () => {
-  it("subscribes to the live video backend stream", () => {
+  it("renders the local MJPEG stream URL", () => {
     render(<MainVideoCanvas streamName="live_vide" />);
 
-    expect(useTauriVideoStreamMock).toHaveBeenCalledWith(
-      "live_vide",
-      expect.any(Object),
-      expect.objectContaining({ bufferFrames: 1, pollMs: 33, renderMs: 33 })
-    );
+    const img = document.querySelector("img.video-canvas") as HTMLImageElement;
+    expect(img.src).toBe("http://127.0.0.1:17777/video/live_vide.mjpg");
     expect(screen.getByText("NO SIGNAL")).toBeTruthy();
   });
 });
