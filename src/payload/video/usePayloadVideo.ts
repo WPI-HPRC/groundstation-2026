@@ -23,23 +23,35 @@ export function usePayloadVideo(canvasRef: RefObject<HTMLCanvasElement | null>):
     const buffer = new FrameBuffer(BUFFER_FRAMES);
     let lastTs: number | null = null;
     let stopped = false;
+    let pollInFlight = false;
 
-    const poll = window.setInterval(async () => {
+    const pollOnce = async () => {
+      if (pollInFlight || stopped) return;
+      pollInFlight = true;
       try {
         const dto = await invoke<VideoFrameDto | null>("get_latest_video_frame", { streamName: STREAM });
-        if (!dto || stopped || dto.timestamp === lastTs) return;
-        lastTs = dto.timestamp;
-        const image = rgbBase64ToImageData(dto.data_base64, dto.width, dto.height);
-        buffer.push({ timestamp: dto.timestamp, image });
-        setSize((prev) =>
-          prev && prev.width === dto.width && prev.height === dto.height
-            ? prev
-            : { width: dto.width, height: dto.height }
-        );
+        if (!dto || stopped) return;
+        if (lastTs !== null && dto.timestamp <= lastTs) return;
+        try {
+          const image = rgbBase64ToImageData(dto.data_base64, dto.width, dto.height);
+          lastTs = dto.timestamp;
+          buffer.push({ timestamp: dto.timestamp, image });
+          setSize((prev) =>
+            prev && prev.width === dto.width && prev.height === dto.height
+              ? prev
+              : { width: dto.width, height: dto.height }
+          );
+        } catch {
+          /* malformed frame — skip without breaking the poll loop */
+        }
       } catch {
         /* no payload video available yet — hold */
+      } finally {
+        pollInFlight = false;
       }
-    }, POLL_MS);
+    };
+
+    const poll = window.setInterval(() => void pollOnce(), POLL_MS);
 
     const render = window.setInterval(() => {
       const frame = buffer.next();

@@ -12,4 +12,13 @@ describe("rgbBase64ToImageData", () => {
     expect(img.height).toBe(1);
     expect(Array.from(img.data)).toEqual([255, 0, 0, 255, 0, 255, 0, 255]);
   });
+
+  it("throws when dimensions are invalid", () => {
+    expect(() => rgbBase64ToImageData(B64, 0, 1)).toThrow(/Invalid frame dimensions/);
+    expect(() => rgbBase64ToImageData(B64, 2, -1)).toThrow(/Invalid frame dimensions/);
+  });
+
+  it("throws when payload is too short for declared dimensions", () => {
+    expect(() => rgbBase64ToImageData(B64, 4, 4)).toThrow(/Expected at least/);
+  });
 });
