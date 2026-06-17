@@ -130,6 +130,7 @@ impl TelemetryRadioHandle {
     }
 
     pub async fn send_serial_port(&self, port: String) -> Result<(), String> {
+        println!("[telem_radio] queue serial port selection: {port}");
         self.port_tx.send(port).await.map_err(|e| e.to_string())
     }
 }
@@ -180,10 +181,11 @@ impl TelemetryRadio {
             if current_port.is_none() {
                 tokio::select! {
                     _ = shutdown_rx.cancelled() => {
-                        tracing::info!("telem_radio: shutdown before port selected");
+                        println!("[telem_radio] shutdown before port selected");
                         return;
                     }
                     Some(port) = self.port_rx.recv() => {
+                        println!("[telem_radio] received serial port selection: {port}");
                         current_port = Some(port);
                     }
                 }
@@ -192,20 +194,21 @@ impl TelemetryRadio {
             let port_name = current_port.take().unwrap();
             match self.run_connected(&port_name, &shutdown_rx).await {
                 RunResult::Shutdown => {
-                    tracing::info!("telem_radio: clean shutdown");
+                    println!("[telem_radio] clean shutdown");
                     return;
                 }
                 RunResult::PortChanged(new_port) => {
-                    tracing::info!("telem_radio: switching to {new_port}");
+                    println!("[telem_radio] switching to {new_port}");
                     current_port = Some(new_port);
                 }
                 RunResult::Error(e) => {
-                    tracing::error!("telem_radio: error on {port_name}: {e}. Retrying in 2s...");
+                    eprintln!("[telem_radio] error on {port_name}: {e}. Retrying in 2s...");
                     current_port = Some(port_name);
                     tokio::select! {
                         _ = sleep(Duration::from_secs(2)) => {}
                         _ = shutdown_rx.cancelled() => return,
                         Some(new_port) = self.port_rx.recv() => {
+                            println!("[telem_radio] received serial port selection while retrying: {new_port}");
                             current_port = Some(new_port);
                         }
                     }
@@ -219,6 +222,7 @@ impl TelemetryRadio {
         port_name: &str,
         shutdown_rx: &CancellationToken,
     ) -> RunResult {
+        println!("[telem_radio] opening serial port {port_name} at {} baud", self.baud_rate);
         let port = match serialport::new(port_name, self.baud_rate)
             .timeout(Duration::from_millis(100))
             .open()
@@ -245,6 +249,8 @@ impl TelemetryRadio {
         std::thread::spawn(move || {
             let mut buf = vec![0u8; 1024];
             let mut accumulator: Vec<u8> = Vec::new();
+            let mut read_count = 0usize;
+            let mut timeout_count = 0usize;
 
             loop {
                 match reader.read(&mut buf) {
@@ -253,6 +259,19 @@ impl TelemetryRadio {
                         return;
                     }
                     Ok(n) => {
+                        timeout_count = 0;
+                        read_count += 1;
+                        if read_count <= 5 {
+                            let preview = buf[..n]
+                                .iter()
+                                .take(16)
+                                .map(|b| format!("{b:02X}"))
+                                .collect::<Vec<_>>()
+                                .join(" ");
+                            println!(
+                                "[telem_radio] raw serial read #{read_count}: {n} bytes; first bytes: {preview}"
+                            );
+                        }
                         accumulator.extend_from_slice(&buf[..n]);
 
                         loop {
@@ -298,7 +317,15 @@ impl TelemetryRadio {
                             }
                         }
                     }
-                    Err(e) if e.kind() == std::io::ErrorKind::TimedOut => continue,
+                    Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
+                        timeout_count += 1;
+                        if timeout_count == 50 || timeout_count % 200 == 0 {
+                            println!(
+                                "[telem_radio] connected but no serial bytes received yet ({timeout_count} read timeouts)"
+                            );
+                        }
+                        continue;
+                    }
                     Err(e) => {
                         let _ = reader_frame_tx.send(Err(e.to_string()));
                         return;
@@ -319,7 +346,7 @@ impl TelemetryRadio {
             }
         });
 
-        tracing::info!("telem_radio: connected to {port_name}");
+        println!("[telem_radio] connected to {port_name}");
 
         // ── Select loop ───────────────────────────────────────────────────────
         loop {
@@ -328,6 +355,7 @@ impl TelemetryRadio {
                     return RunResult::Shutdown;
                 }
                 Some(new_port) = self.port_rx.recv() => {
+                    println!("[telem_radio] received serial port change: {new_port}");
                     return RunResult::PortChanged(new_port);
                 }
                 Some(payload_control) = self.payload_control_rx.recv() => {
@@ -398,13 +426,14 @@ impl TelemetryRadio {
     }
 
     async fn handle_frame(&mut self, frame: Vec<u8>) {
-        tracing::debug!("telem_radio: rx {} bytes", frame.len());
+        println!("[telem_radio] framed packet received: {} bytes", frame.len());
 
         // take off framing header
         let frame_payload = &frame[HEADER_LEN..];
 
         if let Ok(packet) = hprc::root_as_packet(&frame_payload) {
                 let packet_type = packet.packet_type();
+                println!("[telem_radio] decoded packet type: {packet_type:?}");
     
     // Extract camera data before any borrows of self
     let camera_data = if packet_type == hprc::PacketUnion::CameraPacket {
@@ -443,12 +472,16 @@ impl TelemetryRadio {
                     packet.packet_as_payload_telemetry_packet().unwrap(),
                 ),
                 hprc::PacketUnion::CameraPacket => {},
-                _ => (),
+                other => {
+                    println!("[telem_radio] packet type {other:?} does not push telemetry");
+                }
             }
         }
         if let Some((fragment_num, fragment_count, data)) = camera_data {
         self.handle_camera_packet(fragment_num, fragment_count, data);
     }
+        } else {
+            eprintln!("[telem_radio] failed to decode framed packet as FlatBuffers Packet");
     }
 }
        

@@ -6,6 +6,7 @@ import ProgressBar from "./Components/ProgressBar";
 import { RocketViewer } from "./Components/RocketViewer";
 import { TrajectoryViewer, type TrajectoryPoint } from "./Components/TrajectoryViewer";
 import { MaxStats } from "./Components/MaxStats";
+import { MainVideoCanvas } from "./Components/MainVideoCanvas";
 import { createTelemetrySource } from "./rocket-dashboard/telemetry/createTelemetrySource";
 import { FlightState, useTelemetry } from "./rocket-dashboard/telemetry/useTelemetry";
 import type { TelemetryFrame } from "./rocket-dashboard/telemetry/types";
@@ -71,7 +72,7 @@ function App() {
 
   return (
     <main className="container">
-      <div className="video-layer" aria-hidden="true" />
+      <MainVideoCanvas />
 
       <ProgressBar
         title="Altitude (AGL)"

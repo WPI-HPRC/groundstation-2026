@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MockTelemetrySource } from "../rocket-dashboard/telemetry/MockTelemetrySource";
-import { MOCK_UPDATE_HZ } from "../rocket-dashboard/config";
+import { createTelemetrySource } from "../rocket-dashboard/telemetry/createTelemetrySource";
 import type { TelemetryFrame } from "../rocket-dashboard/telemetry/types";
 import {
   formatConsolePrefix,
@@ -34,7 +33,7 @@ export function ConsoleView() {
   const lastStateRef = useRef<FlightState>(FlightState.PreLaunch);
 
   useEffect(() => {
-    const source = new MockTelemetrySource({ updateHz: MOCK_UPDATE_HZ });
+    const source = createTelemetrySource();
     const unsub = source.subscribe((f) => {
       if (pausedRef.current) return;
 

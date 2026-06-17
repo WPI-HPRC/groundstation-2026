@@ -47,6 +47,7 @@ pub async fn set_telem_serial_port(
     telem_backend: State<'_, TelemetryRadioHandle>,
     port_name: String,
 ) -> Result<(), String> {
+    println!("[command] set_telem_serial_port({port_name})");
     telem_backend.send_serial_port(port_name).await
 }
 
