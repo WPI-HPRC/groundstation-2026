@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { FrameCallback, TelemetrySourceWithDiagnostics } from "./TelemetrySource";
 import { FLIGHT_STATE_ORDER, FlightState, type Quat, type TelemetryFrame, type Vec3 } from "./types";
+import { pressureToAltitude } from "./baro";
 
 type LatestDto = { timestamp: number; value: string };
 
@@ -21,16 +22,16 @@ function stateFromU32(raw: number | null): FlightState | null {
 const STORE = "rocket";
 const FIELDS = {
   state: "state",
-  voltage: "battery voltage",
-  temperature: "temperature",
-  altitude: "pressure",
-  gyro: ["asm330 gyro x", "asm330 gyro y", "asm330 gyro z"] as const,
-  accel: ["asm330 acc x", "asm330 acc y", "asm330 acc z"] as const,
-  mag: ["mag x", "mag y", "mag z"] as const,
+  voltage: "battery_voltage",
+  temperature: "temp",
+  pressure: "pressure",
+  gyro: ["asm330_gyr0", "asm330_gyr1", "asm330_gyr2"] as const,
+  accel: ["asm330_accel0", "asm330_accel1", "asm330_accel2"] as const,
+  mag: ["mag0", "mag1", "mag2"] as const,
   // EKF
   q: ["w", "i", "j", "k"] as const,
-  vel: ["vel x", "vel y", "vel z"] as const,
-  pos: ["pos x", "pos y", "pos z"] as const,
+  vel: ["vel_x", "vel_y", "vel_z"] as const,
+  pos: ["pos_x", "pos_y", "pos_z"] as const,
 } as const;
 
 async function latest(field_name: string): Promise<LatestDto | null> {
@@ -51,6 +52,7 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
   private readonly subs = new Set<FrameCallback>();
   private lastFrame: TelemetryFrame | null = null;
   private droppedFrames = 0;
+  private pollInFlight = false;
 
   constructor({ updateHz = 20 }: { updateHz?: number } = {}) {
     this.updateMs = Math.max(MIN_POLL_MS, Math.round(1000 / updateHz));
@@ -63,7 +65,15 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
 
   start(): void {
     if (this.timer != null) return;
-    this.timer = window.setInterval(() => void this.pollOnce(), this.updateMs);
+    this.timer = window.setInterval(() => this.schedulePoll(), this.updateMs);
+    this.schedulePoll();
+  }
+
+  private schedulePoll(): void {
+    if (this.pollInFlight) {
+      this.droppedFrames++;
+      return;
+    }
     void this.pollOnce();
   }
 
@@ -82,6 +92,16 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
   }
 
   private async pollOnce(): Promise<void> {
+    if (this.pollInFlight) return;
+    this.pollInFlight = true;
+    try {
+      await this.pollOnceInner();
+    } finally {
+      this.pollInFlight = false;
+    }
+  }
+
+  private async pollOnceInner(): Promise<void> {
     // Fetch all required fields in parallel.
     const [
       st,
@@ -111,7 +131,7 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
       latest(FIELDS.state),
       latest(FIELDS.voltage),
       latest(FIELDS.temperature),
-      latest(FIELDS.altitude),
+      latest(FIELDS.pressure),
       latest(FIELDS.gyro[0]),
       latest(FIELDS.gyro[1]),
       latest(FIELDS.gyro[2]),
@@ -170,7 +190,8 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
 
     const vbatN = parseNum(vbat?.value);
     const tempN = parseNum(temp?.value);
-    const altN = parseNum(alt?.value);
+    const pressureN = parseNum(alt?.value);
+    const altN = pressureN != null ? pressureToAltitude(pressureN) : null;
     const stateN = stateFromU32(parseNum(st?.value));
 
     const anyValid =
@@ -268,8 +289,14 @@ export class TauriTelemetrySource implements TelemetrySourceWithDiagnostics {
 
     const acceleration = Math.hypot(accel.x, accel.y, accel.z);
 
+    const frameTimestamp = ts ?? this.lastFrame!.timestamp;
+    if (this.lastFrame && ts != null && ts < this.lastFrame.timestamp) {
+      this.droppedFrames++;
+      return;
+    }
+
     const frame: TelemetryFrame = {
-      timestamp: ts ?? this.lastFrame!.timestamp,
+      timestamp: frameTimestamp,
       state: stateN ?? this.lastFrame!.state,
       orientation,
       velocity,

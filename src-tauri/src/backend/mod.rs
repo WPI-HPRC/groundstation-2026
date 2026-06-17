@@ -9,4 +9,5 @@ pub mod telemetry_radio_interface;
 pub mod tracker_interface;
 pub mod video_capture_interface;
 pub mod joystick_input;
+pub mod mock_telemetry;
 
