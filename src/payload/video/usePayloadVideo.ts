@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { rgbBase64ToImageData } from "./decodeFrame";
 import { FrameBuffer } from "./FrameBuffer";

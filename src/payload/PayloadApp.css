@@ -30,3 +30,19 @@ body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; }
   opacity: 0.8;
   margin-bottom: 10px;
 }
+.payload-logo {
+  position: absolute;
+  z-index: 2;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.payload-logo img {
+  width: 18cqw;
+  max-width: 260px;
+  height: auto;
+  filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.7));
+}
