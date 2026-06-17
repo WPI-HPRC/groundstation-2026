@@ -63,8 +63,7 @@ describe("PortSelect", () => {
     await act(async () => {
       fireEvent.change(screen.getByRole("combobox"), { target: { value: "COM5" } });
     });
-    await waitFor(() =>
-      expect(screen.getByRole("option", { name: "could not set port" })).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText("could not set port")).toBeTruthy());
+    expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe("COM5");
   });
 });

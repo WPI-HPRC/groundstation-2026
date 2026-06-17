@@ -36,4 +36,31 @@ describe("usePortOptions", () => {
     await waitFor(() => expect(result.current.error).toBe("ports unavailable"));
     expect(result.current.options).toEqual([]);
   });
+
+  it("ignores stale refresh results when refresh is called rapidly", async () => {
+    invokeMock.mockResolvedValueOnce(["INIT"]);
+    const { result } = renderHook(() => useSerialPorts());
+    await waitFor(() => expect(result.current.options).toEqual(["INIT"]));
+
+    let resolveSlow: (value: string[]) => void;
+    let resolveFast: (value: string[]) => void;
+    const slowPromise = new Promise<string[]>((resolve) => {
+      resolveSlow = resolve;
+    });
+    const fastPromise = new Promise<string[]>((resolve) => {
+      resolveFast = resolve;
+    });
+
+    invokeMock.mockImplementationOnce(() => slowPromise).mockImplementationOnce(() => fastPromise);
+
+    void result.current.refresh();
+    void result.current.refresh();
+
+    resolveFast!(["NEW"]);
+    await waitFor(() => expect(result.current.options).toEqual(["NEW"]));
+
+    resolveSlow!(["STALE"]);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(result.current.options).toEqual(["NEW"]);
+  });
 });

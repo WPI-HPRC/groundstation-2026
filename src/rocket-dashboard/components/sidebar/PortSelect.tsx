@@ -46,7 +46,7 @@ export function PortSelect({
             borderRadius: 4,
           }}
         >
-          <option value="">{setError ?? error ?? "Select"}</option>
+          <option value="">{error ?? "Select"}</option>
           {options.map((o) => (
             <option key={o} value={o}>
               {o}
@@ -68,6 +68,9 @@ export function PortSelect({
           ⟳
         </button>
       </div>
+      {setError ? (
+        <div style={{ fontSize: 12, color: "var(--accent-color)" }}>{setError}</div>
+      ) : null}
     </div>
   );
 }
