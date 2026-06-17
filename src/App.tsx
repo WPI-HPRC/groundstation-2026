@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import "./App.css";
 import logo from "./Resources/HPRC-Logo-and-Text.svg";
 import ArcGauge from "./Components/ArcGauge";
@@ -10,13 +10,17 @@ import { MainVideoCanvas } from "./Components/MainVideoCanvas";
 import { createTelemetrySource } from "./rocket-dashboard/telemetry/createTelemetrySource";
 import { FlightState, useTelemetry } from "./rocket-dashboard/telemetry/useTelemetry";
 import type { TelemetryFrame } from "./rocket-dashboard/telemetry/types";
-import SplitView from "./Components/SplitView";
+import SplitView, { type SplitViewChoice } from "./Components/SplitView";
 
 const M_TO_FT = 3.28084;
 const MPS_TO_FPS = 3.28084;
 const G_MPS2 = 9.80665;
 const ALTITUDE_MAX_FT = 30000;
 const TRAJECTORY_POINT_LIMIT = 2000;
+const VIDEO_STREAMS: Record<SplitViewChoice, string> = {
+  live: "live_vide",
+  tracking: "tracking",
+};
 
 type TrajectoryState = {
   points: TrajectoryPoint[];
@@ -61,10 +65,20 @@ function App() {
   const snap = useTelemetry(source);
   const latest = snap.latest;
   const [trajectoryState, updateTrajectory] = useReducer(trajectoryReducer, initialTrajectoryState);
+  const [selectedView, setSelectedView] = useState<SplitViewChoice>("live");
+  const [showSplitView, setShowSplitView] = useState(false);
 
   useEffect(() => {
     if (latest) updateTrajectory(latest);
   }, [latest]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowSplitView(true);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const altitudeFt = Math.max(0, latest?.altitude ?? 0) * M_TO_FT;
   const speedFtS = Math.max(0, latest?.velocity ?? 0) * MPS_TO_FPS;
@@ -73,7 +87,12 @@ function App() {
 
   return (
     <main className="container">
-      <MainVideoCanvas />
+      {!showSplitView ? (
+        <MainVideoCanvas
+          streamName={VIDEO_STREAMS[selectedView]}
+          label={selectedView === "live" ? "Live rocket video" : "Ground tracking video"}
+        />
+      ) : null}
 
       <ProgressBar
         title="Altitude (AGL)"
@@ -85,7 +104,14 @@ function App() {
       ></ProgressBar>
       <TrajectoryViewer points={trajectoryState.points}></TrajectoryViewer>
 
-      <SplitView></SplitView>
+      {showSplitView ? (
+        <SplitView
+          onSelect={(choice) => {
+            setSelectedView(choice);
+            setShowSplitView(false);
+          }}
+        />
+      ) : null}
 
       <div className="container-secondary" id="gauges-container">
         <MaxStats

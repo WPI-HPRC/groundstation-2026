@@ -1,15 +1,40 @@
-import view1 from "../Resources/image.png";
-import view2 from "../Resources/bg-img-test.png";
+import { MainVideoCanvas } from "./MainVideoCanvas";
+import "./SplitView.css";
 
-import("./SplitView.css");
+export type SplitViewChoice = "live" | "tracking";
 
-export default function SplitView() {
-    return (
-        <div className="split-view-container">
-            <div className="split-view-images-container">
-                <img src={view1} className="split-view-image" id="live-video-img"></img>
-                <img src={view2} className="split-view-image" id="ground-tracking-img"></img>
-            </div>
-        </div>
-    )
+export default function SplitView({ onSelect }: { onSelect: (choice: SplitViewChoice) => void }) {
+  return (
+    <div className="split-view-container" role="dialog" aria-label="Select video view">
+      <div className="split-view-title">Select View</div>
+      <div className="split-view-images-container">
+        <button
+          type="button"
+          className="split-view-option"
+          id="live-video-img"
+          onClick={() => onSelect("live")}
+        >
+          <MainVideoCanvas
+            streamName="live_vide"
+            className="split-view-image"
+            label="Live video preview"
+          />
+          <span className="split-view-label">Live Video</span>
+        </button>
+        <button
+          type="button"
+          className="split-view-option"
+          id="ground-tracking-img"
+          onClick={() => onSelect("tracking")}
+        >
+          <MainVideoCanvas
+            streamName="tracking"
+            className="split-view-image"
+            label="Ground tracking preview"
+          />
+          <span className="split-view-label">Ground Tracking</span>
+        </button>
+      </div>
+    </div>
+  );
 }

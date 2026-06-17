@@ -1,11 +1,28 @@
 import { useRef } from "react";
-import { useTauriVideoStream } from "../video/useTauriVideoStream";
+import { useTauriVideoStream, type TauriVideoStreamOptions } from "../video/useTauriVideoStream";
 
-const LIVE_VIDEO_STREAM = "live_vide";
-
-export function MainVideoCanvas() {
+export function MainVideoCanvas({
+  streamName,
+  className = "video-layer",
+  label = "Live video",
+  videoOptions = { pollMs: 33, renderMs: 33, bufferFrames: 1 },
+}: {
+  streamName: string;
+  className?: string;
+  label?: string;
+  videoOptions?: TauriVideoStreamOptions;
+}) {
   const ref = useRef<HTMLCanvasElement | null>(null);
-  useTauriVideoStream(LIVE_VIDEO_STREAM, ref);
+  const size = useTauriVideoStream(streamName, ref, videoOptions);
 
-  return <canvas ref={ref} className="video-layer" aria-label="Live rocket video" />;
+  return (
+    <div className={className} aria-label={label}>
+      <canvas ref={ref} className="video-canvas" />
+      {!size ? (
+        <div className="no-video-placeholder">
+          <span>NO SIGNAL</span>
+        </div>
+      ) : null}
+    </div>
+  );
 }

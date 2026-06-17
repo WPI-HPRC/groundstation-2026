@@ -4,7 +4,9 @@ use crate::{
     middleware::{Middleware, TelemetryDataFrontend, VideoFrameFrontend},
     backend::video_capture_interface::CameraHandle,
 };
+use std::sync::Arc;
 use tauri::State;
+use tokio::sync::Mutex;
 // use std::alloc::Global;
 // use serde::Serialize;
 // use std::collections::HashMap;
@@ -66,11 +68,12 @@ pub async fn send_command(
 
 #[tauri::command]
 pub async fn get_telemetry(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
     store_name: String,
     field_name: String,
     count: Option<usize>,
 ) -> Result<Vec<TelemetryDataFrontend>, String> {
+    let middleware = middleware.lock().await;
     let data = match count {
         Some(n) => middleware.get_last_n(&store_name, &field_name, n)?
             .unwrap_or_default(),
@@ -88,10 +91,11 @@ pub async fn get_telemetry(
 
 #[tauri::command]
 pub async fn get_latest_telemetry(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
     store_name: String,
     field_name: String,
 ) -> Result<Option<TelemetryDataFrontend>, String> {
+    let middleware = middleware.lock().await;
     let data = middleware.get_last(&store_name, &field_name)?;
 
     Ok(data.map(|d| TelemetryDataFrontend {
@@ -102,8 +106,9 @@ pub async fn get_latest_telemetry(
 
 #[tauri::command]
 pub async fn get_telemetry_store_names(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
 ) -> Result<Vec<String>, String> {
+    let middleware = middleware.lock().await;
     Ok(middleware.get_store_names())
 }
 
@@ -113,16 +118,18 @@ pub async fn get_telemetry_store_names(
 
 #[tauri::command]
 pub async fn get_video_stream_names(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
 ) -> Result<Vec<String>, String> {
+    let middleware = middleware.lock().await;
     Ok(middleware.get_video_keys())
 }
 
 #[tauri::command]
 pub async fn get_latest_video_frame(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
     stream_name: String,
 ) -> Result<Option<VideoFrameFrontend>, String> {
+    let middleware = middleware.lock().await;
     Ok(middleware.get_latest_video_frame(&stream_name))
 }
 
@@ -153,21 +160,24 @@ pub async fn set_payload_camera_device(
 
 #[tauri::command]
 pub async fn start_recording_all(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
 ) -> Result<(), String> {
+    let middleware = middleware.lock().await;
     middleware.start_recording_all()
 }
 
 #[tauri::command]
 pub async fn stop_recording_all(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
 ) -> Result<(), String> {
+    let middleware = middleware.lock().await;
     middleware.stop_recording_all()
 }
 
 #[tauri::command]
 pub async fn get_recording_status(
-    middleware: State<'_, Middleware>,
+    middleware: State<'_, Arc<Mutex<Middleware>>>,
 ) -> Result<bool, String> {
+    let middleware = middleware.lock().await;
     Ok(middleware.get_recording_status())
 }

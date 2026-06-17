@@ -233,8 +233,8 @@ pub fn run() {
                 app_handle.state::<Channels::ShutdownState>().shutdown.cancel();
 
                 // call explicit cleanup on middleware to close file handles
-                let middleware = app_handle.state::<Arc<Middleware>>();
-                middleware.shutdown();
+                let middleware = app_handle.state::<Arc<Mutex<Middleware>>>();
+                middleware.blocking_lock().shutdown();
                 
                 api.prevent_close();
 
