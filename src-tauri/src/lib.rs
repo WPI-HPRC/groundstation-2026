@@ -22,10 +22,10 @@ use crate::channels::{self as Channels, PlaybackState};
 mod commands;
 
 mod backend;
-use crate::backend::{ 
-    // data_playback, 
+use crate::backend::{
+    // data_playback,
     telemetry_radio_interface,
-    // tracker_interface,
+    tracker_interface,
     joystick_input,
     mock_telemetry,
 };
@@ -101,9 +101,17 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
     //     telem_radio2.run(telem_shutdown_rx2).await;
     // });
 
+    let tracker_shutdown = shutdown_rx.clone();
+    let (tracker, tracker_handle) = tracker_interface::new();
+    tauri::async_runtime::spawn(async move {
+        tracker.run(tracker_shutdown).await;
+    });
+    app_handle.manage(tracker_handle.clone());
+
     let joystick_shutdown = shutdown_rx.clone();
     let (joystick, joystick_handle) = joystick_input::new(
         telem_payload_control_handle.clone(),
+        tracker_handle,
         middleware.clone(),
     );
     tauri::async_runtime::spawn(async move {
@@ -120,12 +128,6 @@ fn setup_backend(app: &tauri::App) -> tauri::Result<()> {
         });
         println!("[mock_telemetry] HPRC_MOCK_TELEM=1 — generating mock data");
     }
-
-    
-    // let tracker_interface = tracker_interface::new(middleware.clone());
-    // tauri::async_runtime::spawn(async move {
-    //     tracker_interface.run(shutdown_rx.clone()).await;
-    // });
 
 
 
@@ -213,6 +215,9 @@ pub fn run() {
             commands::start_recording_all,
             commands::stop_recording_all,
             commands::get_recording_status,
+            commands::set_tracker_serial_port,
+            commands::set_tracker_state,
+            commands::send_tracker_values,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");

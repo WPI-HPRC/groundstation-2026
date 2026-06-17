@@ -1,6 +1,7 @@
 use crate::{
-    backend::telemetry_radio_interface::{TelemetryRadioHandle, hprc}, 
-    channels::{LiveVideoHandle, TrackingCameraHandle}, 
+    backend::telemetry_radio_interface::{TelemetryRadioHandle, hprc},
+    backend::tracker_interface::{TrackerHandle, TrackerState},
+    channels::{LiveVideoHandle, TrackingCameraHandle},
     middleware::{Middleware, TelemetryDataFrontend, VideoFrameFrontend, VideoFrameJpegFrontend},
     backend::video_capture_interface::CameraHandle,
 };
@@ -60,6 +61,39 @@ pub async fn send_command(
 ) -> Result<(), String> {
     let cmd = hprc::Command(cmd);
     telem_backend.send_command(cmd).await
+}
+
+#[tauri::command]
+pub async fn set_tracker_serial_port(
+    tracker: State<'_, TrackerHandle>,
+    port_name: String,
+) -> Result<(), String> {
+    println!("[command] set_tracker_serial_port({port_name})");
+    tracker.send_serial_port(port_name).await
+}
+
+#[tauri::command]
+pub async fn set_tracker_state(
+    tracker: State<'_, TrackerHandle>,
+    state: String,
+) -> Result<(), String> {
+    let tracker_state = match state.as_str() {
+        "IDLE" => TrackerState::Idle,
+        "CALIBRATE" => TrackerState::Calibrate,
+        "ABSOLUTE" => TrackerState::Absolute,
+        "REMOTE" => TrackerState::Remote,
+        other => return Err(format!("unknown tracker state: {other}")),
+    };
+    tracker.send_state(tracker_state).await
+}
+
+#[tauri::command]
+pub async fn send_tracker_values(
+    tracker: State<'_, TrackerHandle>,
+    azimuth: f32,
+    elevation: f32,
+) -> Result<(), String> {
+    tracker.send_values(azimuth, elevation).await
 }
 
 /* =========================================================
