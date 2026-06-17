@@ -1,0 +1,99 @@
+.split-view-container {
+    width: 100vw;
+    height: 100vh;
+
+    position: relative;
+
+        background:
+
+        radial-gradient(circle at 15% 25%, rgba(210, 40, 80, 0.45), transparent 26%),
+
+        radial-gradient(circle at 85% 20%, rgba(55, 130, 255, 0.38), transparent 30%),
+
+        radial-gradient(circle at 70% 85%, rgba(255, 160, 60, 0.22), transparent 34%),
+
+        linear-gradient(120deg, rgba(255,255,255,0.09), transparent 35%),
+
+        repeating-linear-gradient(
+
+            135deg,
+
+            rgba(255,255,255,0.06) 0px,
+
+            rgba(255,255,255,0.06) 1px,
+
+            transparent 1px,
+
+            transparent 18px
+
+        ),
+        linear-gradient(145deg, #1b1d2a 0%, #0d1324 48%, #1a0710 100%);
+}
+
+.split-view-images-container {
+
+    position: absolute;
+
+    left: 17%;
+    top: 7%;
+
+    width: 66%;
+
+    height: 70%;
+}
+
+.split-view-image {
+
+    position: absolute;
+
+    width: 50%;
+
+    aspect-ratio: 16 / 9;
+
+    object-fit: cover;
+
+    border-radius: 20px;
+
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.5);
+}
+
+.split-view-image {
+
+    border-radius: 18px;
+
+    border: 5px solid transparent;
+
+    background:
+
+        linear-gradient(#0000, #0000) padding-box,
+
+        linear-gradient(
+
+            135deg,
+
+            rgba(255,80,100,0.8),
+
+            rgba(255,255,255,0.3),
+
+            rgba(80,120,255,0.8)
+
+        ) border-box;
+
+    box-shadow:
+
+        0 15px 40px rgba(0,0,0,0.45);
+
+}
+
+.split-view-image:first-child {
+    left: 0;
+    top: 50%;
+}
+
+.split-view-image:last-child {
+
+    right: 0;
+
+    top: 0;
+
+}
